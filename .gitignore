@@ -1,0 +1,50 @@
+# Maven
+target/
+pom.xml.tag
+pom.xml.releaseBackup
+pom.xml.versionsBackup
+pom.xml.next
+release.properties
+dependency-reduced-pom.xml
+buildNumber.properties
+.mvn/timing.properties
+.mvn/wrapper/maven-wrapper.jar
+
+# Build output / generated scratch
+*.class
+build/
+out/
+bin/
+
+# Quarkus
+.quarkus/
+quarkus.log
+
+# Kotlin
+.kotlin/
+
+# IDE - IntelliJ
+.idea/
+*.iml
+*.ipr
+*.iws
+
+# IDE - Eclipse
+.project
+.classpath
+.settings/
+.factorypath
+
+# IDE - VS Code
+.vscode/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs and temp
+*.log
+*.tmp
+
+# Local agent / MCP scratch
+.mcp_data/
