@@ -12,7 +12,7 @@ Design: `docs/001-target-stack.md` and `docs/quarkus-customization.md`.
 
 ## test-resources
 
-- [ ] Module that publishes `src/main/resources/zdl/`, `src/main/resources/openapi/openapi.yml`, and `src/main/resources/asyncapi/asyncapi.yml` for every other module.
+- [x] Module that publishes `src/main/resources/zdl/`, `src/main/resources/openapi/openapi.yml`, and `src/main/resources/asyncapi/asyncapi.yml` for every other module.
 
 ## design
 
