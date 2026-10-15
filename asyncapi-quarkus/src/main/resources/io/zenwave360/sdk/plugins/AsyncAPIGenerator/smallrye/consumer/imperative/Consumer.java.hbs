@@ -1,0 +1,105 @@
+package {{consumerApiPackage}};
+
+import java.nio.charset.StandardCharsets;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.concurrent.CompletionStage;
+
+import jakarta.enterprise.context.ApplicationScoped;
+import org.apache.kafka.common.header.Header;
+import org.eclipse.microprofile.reactive.messaging.Incoming;
+import org.eclipse.microprofile.reactive.messaging.Message;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import io.smallrye.reactive.messaging.kafka.api.IncomingKafkaRecordMetadata;
+
+{{#if modelPackage}}
+import {{modelPackage}}.*;
+{{/if}}
+
+/**
+ * {{asyncapi.description}}
+ */
+@ApplicationScoped
+@jakarta.annotation.Generated(value = "io.zenwave360.sdk.plugins.AsyncAPIGeneratorPlugin", date = "{{date}}")
+{{~#if generatedAnnotationClass}}@{{generatedAnnotationClass}}{{~/if}}
+public class {{consumerName (camelCase channelName)}} {
+
+    protected Logger log = LoggerFactory.getLogger(getClass());
+
+    protected final {{consumerServiceInterfaceName (camelCase channelName)}} service;
+
+{{~#if useEnterpriseEnvelope}}
+    public EnvelopeUnWrapper envelopeUnWrapper;
+{{~/if}}
+
+    public {{consumerName (camelCase channelName)}}({{consumerServiceInterfaceName (camelCase channelName)}} service) {
+        this.service = service;
+    }
+
+{{~#if useEnterpriseEnvelope}}
+    public void setEnvelopeUnWrapper(EnvelopeUnWrapper envelopeUnWrapper) {
+        this.envelopeUnWrapper = envelopeUnWrapper;
+    }
+{{~/if}}
+
+    @Incoming("{{componentPrefix}}{{channelName}}{{componentSuffix}}")
+    public CompletionStage<Void> consume(Message<Object> message) {
+        Object payload = message.getPayload();
+        log.debug("Received message: {}", payload);
+        Map<String, Object> headers = headerMap(message);
+        try {
+            Object unwrappedPayload = {{#if (hasEnterpriseEnvelope operations)}}unwrap(payload){{else}}payload{{/if}};
+        {{~initVisited 'messageType'}}
+        {{~#each operations as |operation|}}
+            {{~#each (operationMessages operation.operationId) as |message|}}
+            {{~#unless (isVisited 'messageType' message.x--javaType register=true)}}
+            if (unwrappedPayload instanceof {{message.x--javaType}}) {
+                var serviceHeaders = new {{consumerServiceInterfaceName (camelCase channelName)}}.{{message.x--javaTypeSimpleName}}Headers();
+                serviceHeaders.putAll(headers);
+                service.{{operation.operationId}}{{methodSuffix message operation}}(({{message.x--javaType}}) unwrappedPayload, serviceHeaders);
+                return message.ack();
+            }
+            {{~/unless}}
+            {{~/each}}
+        {{~/each}}
+            log.warn("Received message without any business handler: [payload: {}]", unwrappedPayload != null ? unwrappedPayload.getClass().getName() : null);
+            service.defaultHandler(unwrappedPayload, headers);
+            return message.ack();
+        } catch (Exception e) {
+            log.error("Error processing message", e);
+            return message.nack(e);
+        }
+    }
+
+    private Map<String, Object> headerMap(Message<?> message) {
+        Map<String, Object> headers = new HashMap<>();
+        var metadata = message.getMetadata(IncomingKafkaRecordMetadata.class);
+        if (metadata.isPresent()) {
+            IncomingKafkaRecordMetadata<?, ?> kafkaRecord = metadata.get();
+            if (kafkaRecord.getHeaders() != null) {
+                for (Header header : kafkaRecord.getHeaders()) {
+                    headers.put(header.key(), header.value() == null ? null : new String(header.value(), StandardCharsets.UTF_8));
+                }
+            }
+            if (kafkaRecord.getKey() != null) {
+                headers.put("kafka_receivedMessageKey", kafkaRecord.getKey());
+            }
+        }
+        return headers;
+    }
+
+{{~#if useEnterpriseEnvelope}}
+    protected Object unwrap(Object payload) {
+        if (envelopeUnWrapper != null) {
+            return envelopeUnWrapper.unwrap(payload);
+        }
+        return payload;
+    }
+
+    public interface EnvelopeUnWrapper {
+        Object unwrap(Object payload);
+    }
+{{/if}}
+}

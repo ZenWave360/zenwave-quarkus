@@ -1,0 +1,131 @@
+package {{producerApiPackage}};
+
+import java.nio.charset.StandardCharsets;
+import java.util.Map;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
+
+import jakarta.enterprise.context.ApplicationScoped;
+import org.apache.kafka.common.header.internals.RecordHeaders;
+import org.eclipse.microprofile.config.inject.ConfigProperty;
+import org.eclipse.microprofile.reactive.messaging.Channel;
+import org.eclipse.microprofile.reactive.messaging.Emitter;
+import org.eclipse.microprofile.reactive.messaging.Message;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import io.smallrye.reactive.messaging.kafka.api.OutgoingKafkaRecordMetadata;
+
+{{#if modelPackage}}
+import {{modelPackage}}.*;
+{{/if}}
+
+/**
+ * {{asyncapi.description}}
+ */
+@ApplicationScoped
+@jakarta.annotation.Generated(value = "io.zenwave360.sdk.plugins.AsyncAPIGeneratorPlugin", date = "{{date}}")
+{{~#if generatedAnnotationClass}}@{{generatedAnnotationClass}}{{~/if}}
+public class {{producerClassName serviceName operationRoleType}} implements {{producerInterfaceName serviceName operationRoleType}} {
+
+    protected Logger log = LoggerFactory.getLogger(getClass());
+
+{{~#each (channelNames operations) as |channelName|}}
+    protected final Emitter<Object> {{asInstanceName channelName}}Emitter;
+    @ConfigProperty(name = "app.kafka.topics.{{componentPrefix}}{{kebabCase channelName}}.timeout", defaultValue = "10")
+    int {{asInstanceName channelName}}Timeout = 10;
+{{~/each}}
+
+{{~#if useEnterpriseEnvelope}}
+    public EnvelopeWrapper envelopeWrapper;
+{{~/if}}
+
+    public {{producerClassName serviceName operationRoleType}}(
+{{~#each (channelNames operations) as |channelName|}}
+            @Channel("{{componentPrefix}}{{channelName}}{{componentSuffix}}") Emitter<Object> {{asInstanceName channelName}}Emitter{{#unless @last}},{{/unless}}
+{{~/each}}
+    ) {
+{{~#each (channelNames operations) as |channelName|}}
+        this.{{asInstanceName channelName}}Emitter = {{asInstanceName channelName}}Emitter;
+{{~/each}}
+    }
+
+{{~#if useEnterpriseEnvelope}}
+    public void setEnvelopeWrapper(EnvelopeWrapper envelopeWrapper) {
+        this.envelopeWrapper = envelopeWrapper;
+    }
+{{~/if}}
+
+{{~#each operations as |operation|}}
+    {{#each (operationMessages operation.operationId) as |message|}}
+    /**
+     * {{{operation.summary}}}
+     */
+    public boolean {{operation.operationId}}{{methodSuffix message operation producer=true}}({{message.x--javaType}} payload, {{message.x--javaTypeSimpleName}}Headers headers) {
+        log.debug("Sending message to channel: {}", "{{operation.x--channel}}");
+        {{~#if (hasRuntimeHeaders message)}}
+        headers = headers != null ? headers : new {{message.x--javaTypeSimpleName}}Headers();
+        processRuntimeHeaders(payload, headers, {{message.x--javaTypeSimpleName}}Headers._runtimeheaders);
+        {{~/if}}
+        Object body = {{#if (hasEnterpriseEnvelope operation)}}wrap(wrapNullPayload(payload)){{else}}wrapNullPayload(payload){{/if}};
+        return sendMessage({{asInstanceName operation.x--channel}}Emitter, body, headers, {{asInstanceName operation.x--channel}}Timeout);
+    }
+
+    {{/each}}
+{{/each}}
+
+{{~#if useEnterpriseEnvelope}}
+    protected Object wrap(Object payload) {
+        if (envelopeWrapper != null) {
+            return envelopeWrapper.wrap(payload);
+        }
+        return payload;
+    }
+
+    public interface EnvelopeWrapper {
+        Object wrap(Object payload);
+    }
+{{~/if}}
+
+    private Message<Object> outgoingMessage(Object payload, Map<String, Object> headers) {
+        RecordHeaders recordHeaders = new RecordHeaders();
+        String key = null;
+        if (headers != null) {
+            for (Map.Entry<String, Object> entry : headers.entrySet()) {
+                if (entry.getValue() == null) {
+                    continue;
+                }
+                if ("kafka_messageKey".equals(entry.getKey())) {
+                    key = String.valueOf(entry.getValue());
+                    continue;
+                }
+                recordHeaders.add(entry.getKey(), String.valueOf(entry.getValue()).getBytes(StandardCharsets.UTF_8));
+            }
+        }
+        OutgoingKafkaRecordMetadata<String> metadata = OutgoingKafkaRecordMetadata.<String>builder()
+                .withKey(key)
+                .withHeaders(recordHeaders)
+                .build();
+        return Message.of(payload).addMetadata(metadata);
+    }
+
+    private boolean sendMessage(Emitter<Object> emitter, Object payload, Map<String, Object> headers, int timeout) {
+        try {
+            emitter.send(outgoingMessage(payload, headers)).toCompletableFuture().get(timeout, TimeUnit.SECONDS);
+            return true;
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            log.error("Message sending interrupted", e);
+            return false;
+        } catch (TimeoutException | ExecutionException e) {
+            Throwable cause = (e instanceof ExecutionException) ? e.getCause() : e;
+            log.error("Failed to send message: {}", cause.getMessage(), cause);
+            throw new RuntimeException("Failed to send message", cause);
+        }
+    }
+
+{{> (partial '../../shared/producer/partials/wrapNullPayload')}}
+{{> (partial 'partials/runtime-headers')}}
+
+}

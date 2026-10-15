@@ -1,0 +1,111 @@
+package {{producerApiPackage}};
+
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+import jakarta.enterprise.context.ApplicationScoped;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+{{#if modelPackage}}
+import {{modelPackage}}.*;
+{{/if}}
+
+/**
+ * {{asyncapi.description}}
+ */
+@ApplicationScoped
+@jakarta.annotation.Generated(value = "io.zenwave360.sdk.plugins.AsyncAPIGeneratorPlugin", date = "{{date}}")
+{{~#if generatedAnnotationClass}}@{{generatedAnnotationClass}}{{~/if}}
+public class {{producerInMemoryName serviceName operationRoleType}} implements {{producerInterfaceName serviceName operationRoleType}} {
+
+    protected Logger log = LoggerFactory.getLogger(getClass());
+
+{{~#each operations as |operation|}}
+    public String {{operation.operationId}}BindingName = "{{componentPrefix}}{{kebabCase operation.operationId}}{{componentSuffix}}";
+{{~/each}}
+
+{{~#if useEnterpriseEnvelope}}
+    public EnvelopeWrapper envelopeWrapper;
+
+    public void setEnvelopeWrapper(EnvelopeWrapper envelopeWrapper) {
+        this.envelopeWrapper = envelopeWrapper;
+    }
+{{~/if}}
+
+    protected Map<String, List<CapturedMessage>> capturedMessages = new HashMap<>();
+
+    public Map<String, List<CapturedMessage>> getCapturedMessages() {
+        return capturedMessages;
+    }
+{{~#each operations as |operation|}}
+    public List<CapturedMessage> get{{capitalize operation.operationId}}CapturedMessages() {
+        return getCapturedMessages({{operation.operationId}}BindingName);
+    }
+{{~/each}}
+
+    public List<CapturedMessage> getCapturedMessages(String bindingName) {
+        return capturedMessages.getOrDefault(bindingName, new ArrayList<>());
+    }
+
+    private boolean appendCapturedMessage(String bindingName, CapturedMessage message) {
+        capturedMessages.computeIfAbsent(bindingName, key -> new ArrayList<>()).add(message);
+        return true;
+    }
+
+{{~#each operations as |operation|}}
+    {{#each (operationMessages operation.operationId) as |message|}}
+    /**
+     * {{{operation.summary}}}
+     */
+    public boolean {{operation.operationId}}{{methodSuffix message operation producer=true}}({{message.x--javaType}} payload, {{message.x--javaTypeSimpleName}}Headers headers) {
+        log.debug("Capturing message to binding: {}", {{operation.operationId}}BindingName);
+        {{~#if (hasRuntimeHeaders message)}}
+        headers = headers != null ? headers : new {{message.x--javaTypeSimpleName}}Headers();
+        processRuntimeHeaders(payload, headers, {{message.x--javaTypeSimpleName}}Headers._runtimeheaders);
+        {{~/if}}
+        Object body = {{#if (hasEnterpriseEnvelope operation)}}wrap(wrapNullPayload(payload)){{else}}wrapNullPayload(payload){{/if}};
+        Map<String, Object> capturedHeaders = headers == null ? null : new HashMap<>(headers);
+        return appendCapturedMessage({{operation.operationId}}BindingName, new CapturedMessage(body, capturedHeaders));
+    }
+
+    {{/each}}
+{{/each}}
+
+    public static class CapturedMessage {
+        private final Object payload;
+        private final Map<String, Object> headers;
+
+        public CapturedMessage(Object payload, Map<String, Object> headers) {
+            this.payload = payload;
+            this.headers = headers;
+        }
+
+        public Object getPayload() {
+            return payload;
+        }
+
+        public Map<String, Object> getHeaders() {
+            return headers;
+        }
+    }
+
+{{~#if useEnterpriseEnvelope}}
+    protected Object wrap(Object payload) {
+        if (envelopeWrapper != null) {
+            return envelopeWrapper.wrap(payload);
+        }
+        return payload;
+    }
+
+    public interface EnvelopeWrapper {
+        Object wrap(Object payload);
+    }
+{{/if}}
+
+{{> (partial '../../shared/producer/partials/wrapNullPayload')}}
+{{> (partial 'partials/runtime-headers')}}
+
+}

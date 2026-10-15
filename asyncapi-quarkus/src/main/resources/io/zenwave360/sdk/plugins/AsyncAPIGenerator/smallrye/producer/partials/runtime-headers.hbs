@@ -1,0 +1,67 @@
+{{~#if (hasRuntimeHeaders operations)}}
+    protected void processRuntimeHeaders(Object payload, java.util.Map<String, Object> headers,
+            java.util.Map<String, String> runtimeHeaders) {
+        if (runtimeHeaders == null || runtimeHeaders.isEmpty()) {
+            return;
+        }
+        if (headers == null) {
+            headers = new java.util.HashMap<>();
+        }
+        for (java.util.Map.Entry<String, String> runtimeHeader : runtimeHeaders.entrySet()) {
+            String location = runtimeHeader.getValue().replace("$message.payload", "").trim();
+            if (location.startsWith("#{") && location.endsWith("}")) {
+                log.warn("Spring SpEL runtime header is not evaluated: {}", location);
+                continue;
+            }
+            if (location.startsWith("$")) {
+                var suppliedValue = getSuppliedValue(location.substring(1));
+                if (suppliedValue != null) {
+                    headers.put(runtimeHeader.getKey(), suppliedValue.orElse(null));
+                }
+                continue;
+            }
+            if (location.startsWith("#/")) {
+                var expression = location.substring(2);
+                try {
+                    var parts = java.util.Arrays.asList(expression.split("/"));
+                    var value = payload;
+                    for (String part : parts) {
+                        if (value != null) {
+                            var pd = new java.beans.PropertyDescriptor(part, value.getClass());
+                            if (pd.getReadMethod() != null) {
+                                value = pd.getReadMethod().invoke(value);
+                            }
+                            else {
+                                log.error("Unable to find property for: {} in class: {}", parts, payload.getClass());
+                            }
+                        }
+                    }
+                    if (!headers.containsKey(runtimeHeader.getKey())) {
+                        headers.put(runtimeHeader.getKey(), value);
+                    }
+                }
+                catch (java.beans.IntrospectionException | java.lang.reflect.InvocationTargetException
+                        | IllegalAccessException e) {
+                    throw new RuntimeException(e);
+                }
+            }
+        }
+    }
+
+    protected java.util.Optional<Object> getSuppliedValue(String supplierBeanName) {
+        try {
+            var selected = jakarta.enterprise.inject.spi.CDI.current()
+                    .select(Object.class, jakarta.enterprise.inject.literal.NamedLiteral.of(supplierBeanName));
+            if (selected.isResolvable()) {
+                Object supplier = selected.get();
+                if (supplier instanceof java.util.function.Supplier<?> bean) {
+                    return java.util.Optional.ofNullable(bean.get());
+                }
+            }
+        }
+        catch (RuntimeException e) {
+            log.warn("Unable to resolve supplier bean: {}", supplierBeanName);
+        }
+        return null;
+    }
+{{~/if}}
