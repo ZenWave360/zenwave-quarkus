@@ -22,7 +22,7 @@ Design: `docs/001-target-stack.md` and `docs/quarkus-customization.md`.
 
 - [x] Module `pom.xml`. `provided` dependencies on `backend-application-default`, `openapi-controllers`, and `openapi-spring-webtestclient`. Test dependency on `test-resources`.
 - [x] Unit test that loads a ZDL from `test-resources` and runs `BackendApplicationDefaultPlugin` with `BackendApplicationQuarkusTemplates`.
-- [ ] First backend slice from the target list: entity, repository port, `EntityManager` repository implementation, inbound service, service implementation.
+- [x] First backend slice from the target list: entity, repository port, `EntityManager` repository implementation, inbound service, service implementation.
 - [ ] Remaining backend target files from the list, including MapStruct `componentModel = cdi` and the in-process CDI event templates.
 - [ ] `OpenAPIControllersQuarkusTemplates` and a unit test that emits `{{serviceName}}ApiController.kt` from `openapi/openapi.yml`.
 - [ ] `QuarkusHttpTestTemplates` and a unit test that emits one `@QuarkusTest` class using JDK `HttpClient`.

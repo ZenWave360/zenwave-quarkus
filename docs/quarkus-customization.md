@@ -147,7 +147,7 @@ HTTP tests: `@QuarkusTest`, `@TestHTTPResource` as a `URI`, `@TestHTTPEndpoint` 
 
 SmallRye producer: `Emitter` and `@Channel` inside `{{producerClassName}}.java`, implementing the shared producer interface. SmallRye consumer: `@Incoming` inside `{{consumerName}}.java`, delegating to the consumer service interface. Avro and Schema Registry stay in those two classes when the model declares them.
 
-Business and application code stays imperative. Method signatures do not use Mutiny (`Uni`, `Multi`), Reactor (`Mono`, `Flux`), or Spring Data (`Page`, `Pageable`).
+Business and application code stays imperative. Method signatures do not use Mutiny (`Uni`, `Multi`), Reactor (`Mono`, `Flux`), or Spring Data (`Page`, `Pageable`). A paginated operation takes `page: Int` and `size: Int` and returns `List`.
 
 ## Tests
 
