@@ -129,7 +129,7 @@ Header fragments (`Headers.hbs`, `runtime-headers.hbs`, `wrapNullPayload.hbs`) s
 
 ## Quarkus substitutions
 
-Application service implementation: `@ApplicationScoped` and `jakarta.transaction.Transactional`. The constructor takes the outbound repository port and, when events are included, the event publisher port. Method bodies live in JPA partials and call the repository port.
+Application service implementation: `@ApplicationScoped` and `jakarta.transaction.Transactional`. The constructor takes the outbound repository ports, the MapStruct mapper, and, when that service emits events, the AsyncAPI events producer or the in-process `EventPublisher` and the events mapper. Method bodies live in JPA partials and call the repository port. `ServicesInMemoryConfig` builds the same constructor with `Mappers.getMapper` and `InMemoryEventPublisher`.
 
 Inbound service: a plain Kotlin interface.
 

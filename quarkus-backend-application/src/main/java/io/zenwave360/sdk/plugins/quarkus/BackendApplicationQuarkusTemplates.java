@@ -4,23 +4,35 @@ import io.zenwave360.sdk.generators.Generator;
 import io.zenwave360.sdk.options.PersistenceType;
 import io.zenwave360.sdk.options.ProgrammingStyle;
 import io.zenwave360.sdk.plugins.BackendApplicationDefaultGenerator;
+import io.zenwave360.sdk.templating.TemplateInput;
 import io.zenwave360.sdk.utils.JSONPath;
 import io.zenwave360.sdk.zdl.ProjectTemplates;
+import io.zenwave360.sdk.zdl.layouts.CleanHexagonalProjectLayout;
 import io.zenwave360.sdk.zdl.layouts.ProjectLayout;
 import io.zenwave360.sdk.zdl.utils.ZDLFindUtils;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
 
+import static io.zenwave360.sdk.templating.OutputFormatType.JSON;
 import static io.zenwave360.sdk.templating.OutputFormatType.KOTLIN;
+import static io.zenwave360.sdk.templating.OutputFormatType.SQL;
 import static io.zenwave360.sdk.zdl.utils.ZDLFindUtils.is;
 
 /**
  * Quarkus templates for {@code BackendApplicationDefaultPlugin}, selected with the {@code templates} option.
+ *
+ * <p>Registrations follow
+ * {@code ../zenwave-sdk/plugins/customizations/kotlin-backend-application}
+ * ({@code BackendApplicationKotlinTemplates}). MongoDB, reactive, and Modulith templates are not registered.
  */
 public class BackendApplicationQuarkusTemplates extends ProjectTemplates {
+
+    /** Bound from the flat 'useJMolecules' option, the same one ZDLProcessor reads. */
+    public boolean useJMolecules = false;
 
     public PersistenceType persistence = PersistenceType.jpa;
 
@@ -28,11 +40,77 @@ public class BackendApplicationQuarkusTemplates extends ProjectTemplates {
 
     public boolean includeEmitEventsImplementation = true;
 
+    public boolean implementEventListeners = false;
+
+    @Override
+    public boolean shouldGenerateListeners() {
+        return implementEventListeners;
+    }
+
     protected Function<Map<String, Object>, Boolean> skipEntity = (model) -> is(model, "vo", "input");
 
     protected Function<Map<String, Object>, Boolean> skipEntityRepository = (model) -> is(model, "persistence")
             || !(is(model, "aggregate") || is(model, "lifecycle")
                     || ZDLFindUtils.isAggregateRoot(JSONPath.get(model, "zdl"), JSONPath.get(model, "$.entity.name")));
+
+    protected Function<Map<String, Object>, Boolean> skipNonAggregateTestData = (model) ->
+            is(model, "embedded")
+                    || !(is(model, "aggregate") || is(model, "lifecycle")
+                    || ZDLFindUtils.isAggregateRoot(JSONPath.get(model, "zdl"), JSONPath.get(model, "$.entity.name")));
+
+    protected Function<Map<String, Object>, Boolean> skipAggregateTransitions = (model) -> {
+        var aggregate = (Map<String, Object>) model.get("aggregate");
+        if (aggregate == null && model.get("aggregateRoot") != null) {
+            aggregate = model;
+        }
+        var zdl = (Map<String, Object>) model.get("zdl");
+        var aggregateRoot = aggregate != null ? (String) aggregate.get("aggregateRoot") : null;
+        var rootEntity = aggregateRoot != null && zdl != null
+                ? (Map<String, Object>) JSONPath.get(zdl, "$.allEntitiesAndEnums." + aggregateRoot)
+                : null;
+        if (aggregate == null || (JSONPath.get(aggregate, "lifecycle") == null && JSONPath.get(rootEntity, "lifecycle") == null)) {
+            return true;
+        }
+        var commands = JSONPath.get(aggregate, "$.commands[*]", List.<Map<String, Object>>of());
+        return commands.stream().noneMatch(command -> JSONPath.get(command, "$.transition.from") != null);
+    };
+
+    protected Function<Map<String, Object>, Boolean> skipEntityServiceTransitions = (model) -> {
+        var entity = (Map<String, Object>) model.get("entity");
+        var zdl = (Map<String, Object>) model.get("zdl");
+        if (entity == null || zdl == null || JSONPath.get(entity, "lifecycle") == null) {
+            return true;
+        }
+        var entityName = (String) entity.get("name");
+        var services = JSONPath.get(zdl, "$.services[*]", List.<Map<String, Object>>of());
+        for (var service : services) {
+            var methods = JSONPath.get(service, "$.methods[*]", List.<Map<String, Object>>of());
+            for (var method : methods) {
+                if (entityName.equals(method.get("entity")) && JSONPath.get(method, "$.transition.from") != null) {
+                    return false;
+                }
+            }
+        }
+        return true;
+    };
+
+    protected Function<Map<String, Object>, Boolean> skipDataSql = (model) -> persistence != PersistenceType.jpa;
+
+    protected Function<Map<String, Object>, Boolean> skipEvents = (model) -> !includeEmitEventsImplementation;
+
+    protected Function<Map<String, Object>, Boolean> skipEventsBus = (model) -> ((Collection) model.get("events")).isEmpty();
+
+    protected Function<Map<String, Object>, Boolean> skipInput = (model) -> is(model, "inline");
+
+    protected Function<Map<String, Object>, Boolean> skipJMolecules = (model) -> !useJMolecules;
+
+    protected Function<Map<String, Object>, Boolean> skipListenerMappers = (model) ->
+            JSONPath.get(model, "$.listenerGroup.mapperBindings", List.of()).isEmpty();
+
+    protected Function<Map<String, Object>, Boolean> skipCleanArchitecture = (model) -> !(layout instanceof CleanHexagonalProjectLayout);
+
+    protected Function<Map<String, Object>, Boolean> skipInfrastructurePackageInfo = (model) ->
+            layout.moduleBasePackage.equals(layout.infrastructurePackage);
 
     @Override
     public List<Object> getTemplateHelpers(Generator generator) {
@@ -48,16 +126,99 @@ public class BackendApplicationQuarkusTemplates extends ProjectTemplates {
 
         var layoutNames = new ProjectLayout();
 
+        this.addTemplate(this.aggregateTemplates, "src/main/kotlin", "core/domain/common/Aggregate.kt",
+                layoutNames.entitiesPackage, "{{aggregate.name}}.kt", KOTLIN, null, true);
+        this.addTemplate(this.aggregateTemplates, "src/main/kotlin", "core/domain/common/AggregateTransitions.kt",
+                layoutNames.entitiesPackage, "{{aggregateTransitionsClassName aggregate}}.kt", KOTLIN, skipAggregateTransitions, true);
+        this.addTemplate(this.domainEventsTemplates, "src/main/kotlin", "core/domain/common/DomainEvent.kt",
+                layoutNames.domainEventsPackage, "{{event.name}}.kt", KOTLIN, null, true);
+
         this.addTemplate(this.entityTemplates, "src/main/kotlin", "core/domain/{{persistence}}/Entity.kt",
                 layoutNames.entitiesPackage, "{{entity.name}}.kt", KOTLIN, skipEntity, false);
+        this.addTemplate(this.entityTemplates, "src/main/kotlin", "core/domain/common/EntityTransitions.kt",
+                layoutNames.entitiesPackage, "{{entityServiceTransitionsClassName entity}}.kt", KOTLIN, skipEntityServiceTransitions, true);
         this.addTemplate(this.entityTemplates, "src/main/kotlin", "core/outbound/{{persistence}}/{{style}}/EntityRepository.kt",
                 layoutNames.outboundRepositoryPackage, "{{entity.className}}Repository.kt", KOTLIN, skipEntityRepository, true);
         this.addTemplate(this.entityTemplates, "src/main/kotlin", "infrastructure/{{persistence}}/{{style}}/EntityRepositoryImpl.kt",
                 layoutNames.infrastructureRepositoryPackage, "{{entity.className}}RepositoryImpl.kt", KOTLIN, skipEntityRepository, true);
+        this.addTemplate(this.entityTemplates, "src/test/kotlin", "infrastructure/{{persistence}}/{{style}}/BaseRepositoryIntegrationTest.kt",
+                layoutNames.infrastructureRepositoryCommonPackage, "BaseRepositoryIntegrationTest.kt", KOTLIN, skipEntityRepository, true);
+        this.addTemplate(this.entityTemplates, "src/test/kotlin", "infrastructure/{{persistence}}/{{style}}/EntityRepositoryIntegrationTest.kt",
+                layoutNames.infrastructureRepositoryPackage, "{{entity.className}}RepositoryIntegrationTest.kt", KOTLIN, skipEntityRepository, true);
+        this.addTemplate(this.entityTemplates, "src/test/kotlin", "infrastructure/{{persistence}}/{{style}}/inmemory/InMemory{{capitalizeFirst persistence}}Repository.kt",
+                layoutNames.infrastructureRepositoryPackage, "inmemory/InMemory{{capitalizeFirst persistence}}Repository.kt", KOTLIN, skipEntityRepository, true);
+        this.addTemplate(this.entityTemplates, "src/test/kotlin", "infrastructure/{{persistence}}/{{style}}/inmemory/EntityRepositoryInMemory.kt",
+                layoutNames.infrastructureRepositoryPackage, "inmemory/{{entity.className}}RepositoryInMemory.kt", KOTLIN, skipEntityRepository, true);
+
+        this.addTemplate(this.entityTemplates, "src/test/resources", "data/{{persistence}}/entity/1.json",
+                "", "data/{{persistence}}/{{entity.name}}/1.json", JSON, skipNonAggregateTestData, true);
+
+        this.addTemplate(this.enumTemplates, "src/main/kotlin", "core/domain/common/DomainEnum.kt",
+                layoutNames.entitiesPackage, "{{enum.name}}.kt", KOTLIN, null, false);
+        this.addTemplate(this.inputEnumTemplates, "src/main/kotlin", "core/domain/common/InputEnum.kt",
+                layoutNames.inboundDtosPackage, "{{enum.name}}.kt", KOTLIN, null, false);
+        this.addTemplate(this.eventEnumTemplates, "src/main/kotlin", "core/domain/common/EventEnum.kt",
+                layoutNames.domainEventsPackage, "{{enum.name}}.kt", KOTLIN, skipInput, false);
+
+        this.addTemplate(this.inputTemplates, "src/main/kotlin", "core/inbound/dtos/InputOrOutput.kt",
+                layoutNames.inboundDtosPackage, "{{entity.className}}.kt", KOTLIN, skipInput, false);
+        this.addTemplate(this.outputTemplates, "src/main/kotlin", "core/inbound/dtos/InputOrOutput.kt",
+                layoutNames.inboundDtosPackage, "{{entity.className}}.kt", KOTLIN, null, false);
 
         this.addTemplate(this.serviceTemplates, "src/main/kotlin", "core/inbound/Service.kt",
                 layoutNames.inboundPackage, "{{service.name}}.kt", KOTLIN, null, false);
         this.addTemplate(this.serviceTemplates, "src/main/kotlin", "core/implementation/{{style}}/ServiceImpl.kt",
                 layoutNames.coreImplementationPackage, "{{service.name}}Impl.kt", KOTLIN, null, true);
+        this.addTemplate(this.listenersByApiTemplates, "src/main/kotlin", "adapters/events/EventListeners.kt",
+                layoutNames.adaptersEventsPackage, "{{listenerGroup.className}}.kt", KOTLIN, null, true);
+        this.addTemplate(this.listenersByApiTemplates, "src/main/kotlin", "adapters/events/EventListenersMapper.kt",
+                layoutNames.adaptersEventsMappersPackage, "{{listenerGroup.className}}Mapper.kt", KOTLIN, skipListenerMappers, true);
+        this.asyncApiAdapterByApiTemplates.add(new TemplateInput(
+                joinPath(getTemplatesFolder(), "src/main/kotlin", "adapters/events/asyncapi/EventsMapper.kt"),
+                "{{asyncapiAdaptersModulePrefix}}src/main/kotlin/" + layoutNames.adaptersEventsPackage + "/EventsMapper.kt",
+                KOTLIN).withSkipOverwrite(true));
+        this.asyncApiAdapterByChannelTemplates.add(new TemplateInput(
+                joinPath(getTemplatesFolder(), "src/main/kotlin", "adapters/events/asyncapi/imperative/ConsumerService.kt"),
+                "{{asyncapiAdaptersModulePrefix}}src/main/kotlin/" + layoutNames.adaptersEventsPackage + "/{{consumerServiceName}}.kt",
+                KOTLIN).withSkipOverwrite(true));
+
+        this.addTemplate(this.singleTemplates, "src/main/kotlin", "core/implementation/mappers/BaseMapper.kt",
+                layoutNames.coreImplementationMappersCommonPackage, "BaseMapper.kt", KOTLIN, null, true);
+        this.addTemplate(this.serviceTemplates, "src/main/kotlin", "core/implementation/mappers/ServiceMapper.kt",
+                layoutNames.coreImplementationMappersPackage, "{{service.name}}Mapper.kt", KOTLIN, null, true);
+        this.addTemplate(this.serviceTemplates, "src/test/kotlin", "core/implementation/{{persistence}}/{{style}}/ServiceTest.kt",
+                layoutNames.coreImplementationPackage, "{{service.name}}Test.kt", KOTLIN, null, true);
+
+        this.addTemplate(this.allServicesTemplates, "src/main/kotlin", "core/implementation/mappers/EventsMapper.kt",
+                layoutNames.coreImplementationMappersPackage, "EventsMapper.kt", KOTLIN, skipEvents, true);
+        this.addTemplate(this.allServicesTemplates, "src/test/kotlin", "config/RepositoriesInMemoryConfig.kt",
+                layoutNames.moduleConfigPackage, "RepositoriesInMemoryConfig.kt", KOTLIN, null, true);
+        this.addTemplate(this.allServicesTemplates, "src/test/kotlin", "config/ServicesInMemoryConfig.kt",
+                layoutNames.moduleConfigPackage, "ServicesInMemoryConfig.kt", KOTLIN, null, true);
+
+        this.addTemplate(this.allDomainEventsTemplates, "src/main/kotlin", "core/outbound/events/EventPublisher.kt",
+                layoutNames.outboundEventsPackage, "EventPublisher.kt", KOTLIN, skipEventsBus, false);
+        this.addTemplate(this.allDomainEventsTemplates, "src/main/kotlin", "infrastructure/events/DefaultEventPublisher.kt",
+                layoutNames.infrastructureEventsPackage, "DefaultEventPublisher.kt", KOTLIN, skipEventsBus, false);
+        this.addTemplate(this.allDomainEventsTemplates, "src/test/kotlin", "infrastructure/events/InMemoryEventPublisher.kt",
+                layoutNames.infrastructureEventsPackage, "InMemoryEventPublisher.kt", KOTLIN, skipEventsBus, false);
+
+        this.addTemplate(this.singleTemplates, "src/test/kotlin", "config/TestDataLoader-{{persistence}}.kt",
+                layoutNames.configPackage, "TestDataLoader.kt", KOTLIN, null, true);
+        this.addTemplate(this.singleTemplates, "src/test/kotlin", "config/DockerComposeInitializer-{{persistence}}.kt",
+                layoutNames.configPackage, "DockerComposeInitializer.kt", KOTLIN, null, true);
+
+        this.addTemplate(this.singleTemplates, "src/test/resources", "data.sql",
+                null, "data.sql", SQL, skipDataSql, true);
+
+        this.addTemplate(this.singleTemplates, "src/main/kotlin", "core/inbound/dtos/package-info.kt",
+                layoutNames.inboundDtosPackage, "package-info.kt", KOTLIN, null, true);
+        this.addTemplate(this.singleTemplates, "src/main/kotlin", "infrastructure/package-info.kt",
+                layoutNames.infrastructurePackage, "package-info.kt", KOTLIN, skipInfrastructurePackageInfo, true);
+
+        this.addTemplate(this.singleTemplates, "src/test/kotlin", "ArchitectureTest.kt",
+                layoutNames.moduleBasePackage, "ArchitectureTest.kt", KOTLIN, skipCleanArchitecture, true);
+        this.addTemplate(this.singleTemplates, "src/test/kotlin", "JMoleculesArchitectureTest.kt",
+                layoutNames.moduleBasePackage, "JMoleculesArchitectureTest.kt", KOTLIN, skipJMolecules, true);
     }
 }

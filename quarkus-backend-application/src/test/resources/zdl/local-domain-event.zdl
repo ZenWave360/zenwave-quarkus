@@ -1,0 +1,22 @@
+config {
+    basePackage io.example.orders
+    persistence jpa
+    databaseType mariadb
+}
+
+@aggregate
+entity Customer {
+    name String required
+}
+
+input CustomerInput {
+    name String required
+}
+
+event CustomerCreated {
+    customerId Long
+}
+
+service CustomerService for (Customer) {
+    createCustomer(CustomerInput) Customer withEvents CustomerCreated
+}

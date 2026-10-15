@@ -1,0 +1,36 @@
+package {{layout.adaptersEventsPackage}}
+
+import org.slf4j.Logger
+import org.slf4j.LoggerFactory
+import jakarta.enterprise.context.ApplicationScoped
+
+/**
+ * Developer-owned AsyncAPI adapter. This file is generated once.
+ */
+@ApplicationScoped
+{{annotate "adapter.asyncapi-consumer"}}
+open class {{consumerServiceName}}(
+{{#each serviceDependencies as |dependency|}}
+    private val {{dependency.serviceVariable}}: {{dependency.serviceType}},
+{{/each}}
+{{#if hasGeneratedMappings}}
+    private val eventsMapper: EventsMapper,
+{{/if}}
+) : {{consumerServiceInterfaceType}} {
+
+    private val log: Logger = LoggerFactory.getLogger(javaClass)
+
+{{#each operations as |operation|}}
+{{#each operation.adapterMessages as |message|}}
+    override fun {{message.x--adapterMethodName}}(payload: {{message.x--adapterJavaType}}, headers: {{message.x--adapterHeadersType}}) {
+        log.debug("Received command request for {{message.x--adapterMethodName}}: {} with headers {}", payload, headers)
+    {{~#if operation.adapterPlan.generated}}
+        {{operation.adapterPlan.serviceVariable}}.{{operation.adapterPlan.serviceMethodName}}(eventsMapper.{{operation.adapterPlan.mapperMethodName}}(payload))
+    {{~else}}
+        // TODO CUSTOM_REQUIRED: {{operation.adapterPlan.reason}}.
+        throw UnsupportedOperationException("Customize {{message.x--adapterMethodName}} for the current AsyncAPI contract")
+    {{~/if}}
+    }
+{{/each}}
+{{/each}}
+}
