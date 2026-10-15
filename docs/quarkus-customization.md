@@ -153,4 +153,4 @@ Business and application code stays imperative. Method signatures do not use Mut
 
 Unit tests in `quarkus-backend-application` and `asyncapi-quarkus` load models from `test-resources`, run `MainGenerator`, and assert the target files and the Quarkus types in them.
 
-`e2e` copies its Quarkus scaffold, runs the four plugins with the templates options above, and compiles the copy. The scaffold pom imports the Quarkus BOM, configures `kotlin-maven-plugin` and the MapStruct processor, and compiles the generated Java AsyncAPI sources together with the Kotlin backend.
+`e2e` copies its Quarkus scaffold, runs the four plugins with the templates options above, and compiles the copy. The scaffold pom imports Quarkus BOM `3.40.1`, configures `kotlin-maven-plugin` 2.4.10 and the MapStruct 1.6.3 processor, and compiles the generated Java AsyncAPI sources together with the Kotlin backend. Testcontainers 2.0.5 comes from that BOM. Java compilation stays on `src/main/java` and `src/test/java`. Kotlin compilation stays on `src/main/kotlin` and `src/test/kotlin`, so the two compilers do not take each other's sources.
