@@ -112,7 +112,7 @@ These Kotlin templates are not registered: MongoDB entities, repositories, fixtu
 
 ## AsyncAPI SmallRye target files
 
-`asyncapi-quarkus` registers the same six outputs as `SpringKafkaTemplates` when `transactionalOutbox` is `none`. Output stays Java.
+`asyncapi-quarkus` registers the same six outputs as `SpringKafkaTemplates` when `transactionalOutbox` is `none`. Output stays Java. `SmallRyeTemplates` uses the classpath folder `io/zenwave360/sdk/plugins/AsyncAPIGenerator`, so the shared producer interface, the payload-and-headers consumer interface, `EventsProducerInMemoryContext`, and the header partials load from the `asyncapi-generator` jar. The three replacements are `smallrye/producer/Producer.java`, `smallrye/producer/InMemoryEventsProducer.java`, and `smallrye/consumer/<style>/Consumer.java`. A Modulith outbox producer is not registered.
 
 | Target file | Source |
 |---|---|

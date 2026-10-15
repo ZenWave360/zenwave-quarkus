@@ -29,7 +29,7 @@ Design: `docs/001-target-stack.md` and `docs/quarkus-customization.md`.
 
 ## asyncapi-quarkus
 
-- [ ] `SmallRyeTemplates` selected by the class name on `AsyncAPIGeneratorPlugin`. Same six target files as `SpringKafkaTemplates` for `transactionalOutbox = none`.
+- [x] `SmallRyeTemplates` selected by the class name on `AsyncAPIGeneratorPlugin`. Same six target files as `SpringKafkaTemplates` for `transactionalOutbox = none`.
 - [ ] SmallRye Handlebars for the producer and the `@Incoming` consumer, replacing the `kafka/` and `scs/` implementations. Shared producer interface and consumer service interface stay free of SmallRye.
 - [ ] Unit test that loads `asyncapi/asyncapi.yml` from `test-resources` and asserts `Emitter` and `@Incoming` appear only on the producer and consumer implementations.
 
