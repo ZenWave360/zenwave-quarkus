@@ -141,7 +141,7 @@ Mappers: `@Mapper(componentModel = "cdi")`, injected.
 
 `EventPublisher` is a framework-free port. `DefaultEventPublisher` fires `jakarta.enterprise.event.Event`. Listeners are `@ApplicationScoped` with `@Observes` and delegate to the application service.
 
-JAX-RS resource: `@ApplicationScoped`, `@Path`, verb annotations, constructor injection. The return type is the response body, or `jakarta.ws.rs.core.Response` when the operation needs an explicit status or location. `PatchMap.kt` uses the same skip rule as `OpenAPIControllersKotlinTemplates`.
+JAX-RS resource: `@ApplicationScoped`, `@Path`, verb annotations, constructor injection of the inbound service and the DTO mapper. It does not implement a generated Spring interface. The return type is the response body, or `jakarta.ws.rs.core.Response` when the operation needs an explicit status or location. A paginated operation calls the service with `page` and `size` and maps the `List` into the paginated DTO. `PatchMap.kt` uses the same skip rule as `OpenAPIControllersKotlinTemplates`.
 
 HTTP tests: `@QuarkusTest`, `@TestHTTPResource` as a `URI`, `@TestHTTPEndpoint` when the generated resource class is known, and `java.net.http.HttpClient`. One class per REST resource. One test method per OpenAPI operation. `SpringWebTestClientPlugin` does not run `KotlinFormatter`, so the templates emit valid Kotlin.
 
