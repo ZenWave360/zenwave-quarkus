@@ -1,0 +1,23 @@
+        var path = "{{operation.x--path}}"
+        {{~#each (pathParams operation) as |param|}}
+        path = path.replace("{" + "{{param.name}}" + "}", {{asInstanceName param.name}}{{i}})
+        {{~/each}}
+        {{~#if (queryParams operation)}}
+        path += "?" + listOf(
+            {{~#each (queryParams operation) as |param|}}
+            "{{param.name}}=" + {{asInstanceName param.name}}{{i}}{{#unless @last}},{{/unless}}
+            {{~/each}}
+        ).joinToString("&")
+        {{~/if}}
+        val httpResponse = httpClient.send(
+            HttpRequest.newBuilder()
+                .uri(resourceUri(endpoint, path))
+                .header("Accept", "application/json")
+                {{~#if operation.x--request-dto}}
+                .header("Content-Type", "application/json")
+                {{~/if}}
+                .method("{{upper operation.x--httpVerb}}", {{#if operation.x--request-dto}}HttpRequest.BodyPublishers.ofString({{requestBodyVar}}){{else}}HttpRequest.BodyPublishers.noBody(){{/if}})
+                .build(),
+            HttpResponse.BodyHandlers.ofString()
+        )
+        Assertions.assertEquals({{response.x--statusCode}}, httpResponse.statusCode())

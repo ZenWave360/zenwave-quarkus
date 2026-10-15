@@ -143,7 +143,7 @@ Mappers: `@Mapper(componentModel = "cdi")`, injected.
 
 JAX-RS resource: `@ApplicationScoped`, `@Path`, verb annotations, constructor injection of the inbound service and the DTO mapper. It does not implement a generated Spring interface. The return type is the response body, or `jakarta.ws.rs.core.Response` when the operation needs an explicit status or location. A paginated operation calls the service with `page` and `size` and maps the `List` into the paginated DTO. `PatchMap.kt` uses the same skip rule as `OpenAPIControllersKotlinTemplates`.
 
-HTTP tests: `@QuarkusTest`, `@TestHTTPResource` as a `URI`, `@TestHTTPEndpoint` when the generated resource class is known, and `java.net.http.HttpClient`. One class per REST resource. One test method per OpenAPI operation. `SpringWebTestClientPlugin` does not run `KotlinFormatter`, so the templates emit valid Kotlin.
+HTTP tests: `@QuarkusTest`, `@TestHTTPResource` as a `URI`, `@TestHTTPEndpoint` when the generated resource class is known, and `java.net.http.HttpClient`. The base class is `BaseQuarkusHttpTest` and holds the client. Service and operation tests set `@TestHTTPEndpoint` to the generated `*ApiController`. One class per REST resource. One test method per OpenAPI operation. `SpringWebTestClientPlugin` does not run `KotlinFormatter`, so the templates emit valid Kotlin.
 
 SmallRye producer: `Emitter` and `@Channel` inside `{{producerClassName}}.java`, implementing the shared producer interface. SmallRye consumer: `@Incoming` inside `{{consumerName}}.java`, delegating to the consumer service interface. Avro and Schema Registry stay in those two classes when the model declares them.
 

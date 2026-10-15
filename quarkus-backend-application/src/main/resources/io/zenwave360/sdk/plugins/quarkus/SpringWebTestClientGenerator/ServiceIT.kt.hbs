@@ -1,0 +1,27 @@
+package {{testsPackage}}
+
+import io.quarkus.test.common.http.TestHTTPEndpoint
+import io.quarkus.test.common.http.TestHTTPResource
+import io.quarkus.test.junit.QuarkusTest
+import {{baseTestClassPackage}}.BaseQuarkusHttpTest
+
+import org.junit.jupiter.api.Assertions
+import org.junit.jupiter.api.Test
+
+import java.net.URI
+import java.net.http.HttpRequest
+import java.net.http.HttpResponse
+
+/**
+ * HTTP tests for [{{serviceName}}Controller].
+ */
+@QuarkusTest
+@TestHTTPEndpoint({{serviceName}}Controller::class)
+open class {{serviceName}}{{testSuffix}} : BaseQuarkusHttpTest() {
+
+    @TestHTTPResource
+    lateinit var endpoint: URI
+
+{{> (partial 'partials/Operation.kt')}}
+
+}
