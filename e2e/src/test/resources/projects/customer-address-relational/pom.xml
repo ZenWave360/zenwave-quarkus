@@ -16,6 +16,9 @@
         <archunit.version>1.4.1</archunit.version>
         <maven.compiler.release>21</maven.compiler.release>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+        <!-- The empty scaffold has no OpenAPI file. The e2e test turns this off after it writes one. -->
+        <openapi.skip>true</openapi.skip>
+        <openapi-generator.version>7.18.0</openapi-generator.version>
     </properties>
 
     <dependencyManagement>
@@ -95,6 +98,48 @@
     <build>
         <plugins>
             <plugin>
+                <groupId>org.openapitools</groupId>
+                <artifactId>openapi-generator-maven-plugin</artifactId>
+                <version>${openapi-generator.version}</version>
+                <executions>
+                    <execution>
+                        <id>generate-openapi-models</id>
+                        <phase>generate-sources</phase>
+                        <goals>
+                            <goal>generate</goal>
+                        </goals>
+                        <configuration>
+                            <skip>${openapi.skip}</skip>
+                            <inputSpec>${project.basedir}/src/main/resources/apis/openapi.yml</inputSpec>
+                            <generatorName>spring</generatorName>
+                            <output>${project.build.directory}/generated-sources/openapi</output>
+                            <modelPackage>io.example.orders.adapters.web.dtos</modelPackage>
+                            <modelNameSuffix>DTO</modelNameSuffix>
+                            <generateApis>false</generateApis>
+                            <generateModels>true</generateModels>
+                            <generateSupportingFiles>false</generateSupportingFiles>
+                            <generateApiTests>false</generateApiTests>
+                            <generateModelTests>false</generateModelTests>
+                            <generateApiDocumentation>false</generateApiDocumentation>
+                            <generateModelDocumentation>false</generateModelDocumentation>
+                            <configOptions>
+                                <useSpringBoot3>true</useSpringBoot3>
+                                <documentationProvider>none</documentationProvider>
+                                <interfaceOnly>true</interfaceOnly>
+                                <openApiNullable>false</openApiNullable>
+                                <useOptional>false</useOptional>
+                                <reactive>false</reactive>
+                                <skipDefaultInterface>true</skipDefaultInterface>
+                            </configOptions>
+                            <!-- Spring marks optional fields with org.springframework.lang.Nullable. Quarkus already has jakarta.annotation.Nullable. -->
+                            <importMappings>
+                                <importMapping>Nullable=jakarta.annotation.Nullable</importMapping>
+                            </importMappings>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+            <plugin>
                 <groupId>io.quarkus.platform</groupId>
                 <artifactId>quarkus-maven-plugin</artifactId>
                 <version>${quarkus.version}</version>
@@ -130,6 +175,13 @@
                             <goal>testCompile</goal>
                         </goals>
                     </execution>
+                    <execution>
+                        <id>compile-kapt-generated</id>
+                        <phase>process-classes</phase>
+                        <goals>
+                            <goal>compile</goal>
+                        </goals>
+                    </execution>
                 </executions>
             </plugin>
             <plugin>
@@ -139,7 +191,7 @@
                 <executions>
                     <execution>
                         <id>kapt</id>
-                        <phase>process-sources</phase>
+                        <phase>compile</phase>
                         <goals>
                             <goal>kapt</goal>
                         </goals>

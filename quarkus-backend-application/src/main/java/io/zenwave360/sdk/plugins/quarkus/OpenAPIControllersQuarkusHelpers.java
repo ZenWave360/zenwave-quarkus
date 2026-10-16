@@ -177,7 +177,12 @@ public class OpenAPIControllersQuarkusHelpers {
             return "byteArrayOf()";
         }
         if (kotlin.endsWith("DTO") || kotlin.endsWith(openApiModelNameSuffix)) {
-            return kotlin + "(" + populateConstructor(api, type) + ")";
+            // OpenAPI models are Java beans. Kotlin named arguments do not apply to them.
+            String assignments = populateConstructor(api, type);
+            if (assignments.isEmpty()) {
+                return kotlin + "()";
+            }
+            return kotlin + "().apply {\n" + assignments + "\n}";
         }
         return "null";
     }
@@ -196,7 +201,7 @@ public class OpenAPIControllersQuarkusHelpers {
         return properties.entrySet().stream()
                 .filter(entry -> required.contains(entry.getKey()))
                 .map(entry -> entry.getKey() + " = " + populateProperty(entry.getValue()))
-                .collect(Collectors.joining(", "));
+                .collect(Collectors.joining("\n"));
     }
 
     private String populateProperty(Map property) {

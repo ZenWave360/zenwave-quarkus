@@ -6,7 +6,6 @@ import {{layout.inboundDtosPackage}}.*
 import {{openApiModelPackage}}.*
 
 import org.mapstruct.Mapper
-import org.mapstruct.Mapping
 import java.math.*
 import java.time.*
 import java.util.*
@@ -28,8 +27,11 @@ interface {{serviceName}}DTOsMapper {
 {{~#each mapperResponseDtoEntity as |entry|}}
     {{#if isResponsePaginated}}
     fun as{{responseDto}}List(entityList: List<{{outputType}}>): List<{{responseDto}}>
-    @Mapping(target = "content", source = ".")
-    fun as{{responseEntityName}}(entities: List<{{outputType}}>): {{responseEntityName}}
+    fun as{{responseEntityName}}(entities: List<{{outputType}}>): {{responseEntityName}} {
+        val dto = {{responseEntityName}}()
+        dto.content = as{{responseDto}}List(entities)
+        return dto
+    }
     {{~else if isResponseArray}}
     fun as{{responseDto}}List(entityList: List<{{outputType}}>): List<{{responseDto}}>
     {{~else}}

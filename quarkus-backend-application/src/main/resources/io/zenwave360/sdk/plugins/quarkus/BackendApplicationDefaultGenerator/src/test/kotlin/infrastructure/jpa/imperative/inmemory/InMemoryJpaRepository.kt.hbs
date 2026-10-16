@@ -33,6 +33,8 @@ abstract class InMemoryJpaRepository<T, ID> {
         entities.clear()
     }
 
+    fun containsEntity(entity: T): Boolean = entities.containsValue(entity)
+
     protected abstract fun idOf(entity: T): ID?
 
     protected abstract fun setId(entity: T, id: ID)

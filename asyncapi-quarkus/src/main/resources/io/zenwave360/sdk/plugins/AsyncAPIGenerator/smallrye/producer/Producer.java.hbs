@@ -2,6 +2,7 @@ package {{producerApiPackage}};
 
 import java.nio.charset.StandardCharsets;
 import java.util.Map;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
@@ -111,8 +112,19 @@ public class {{producerClassName serviceName operationRoleType}} implements {{pr
     }
 
     private boolean sendMessage(Emitter<Object> emitter, Object payload, Map<String, Object> headers, int timeout) {
+        CompletableFuture<Void> acknowledged = new CompletableFuture<>();
+        Message<Object> message = outgoingMessage(payload, headers)
+                .withAck(() -> {
+                    acknowledged.complete(null);
+                    return CompletableFuture.completedFuture(null);
+                })
+                .withNack(reason -> {
+                    acknowledged.completeExceptionally(reason);
+                    return CompletableFuture.completedFuture(null);
+                });
         try {
-            emitter.send(outgoingMessage(payload, headers)).toCompletableFuture().get(timeout, TimeUnit.SECONDS);
+            emitter.send(message);
+            acknowledged.get(timeout, TimeUnit.SECONDS);
             return true;
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();

@@ -59,6 +59,18 @@
             <scope>test</scope>
         </dependency>
         <dependency>
+            <groupId>io.zenwave360.sdk.plugins</groupId>
+            <artifactId>zdl-to-openapi</artifactId>
+            <version>${zenwave-sdk.version}</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>io.zenwave360.sdk.plugins</groupId>
+            <artifactId>zdl-to-asyncapi</artifactId>
+            <version>${zenwave-sdk.version}</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
             <groupId>io.zenwave360.sdk</groupId>
             <artifactId>quarkus-backend-application</artifactId>
             <version>${project.version}</version>
@@ -76,4 +88,18 @@
             <scope>test</scope>
         </dependency>
     </dependencies>
+
+    <build>
+        <plugins>
+            <plugin>
+                <artifactId>maven-surefire-plugin</artifactId>
+                <configuration>
+                    <argLine>${surefire.argLine}</argLine>
+                    <systemPropertyVariables>
+                        <maven.home>${maven.home}</maven.home>
+                    </systemPropertyVariables>
+                </configuration>
+            </plugin>
+        </plugins>
+    </build>
 </project>
