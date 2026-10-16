@@ -1,0 +1,43 @@
+package {{layout.adaptersWebMappersPackage}};
+
+import {{layout.adaptersWebMappersCommonPackage}}.BaseMapper;
+import {{layout.entitiesPackage}}.*;
+import {{layout.inboundDtosPackage}}.*;
+import {{openApiModelPackage}}.*;
+
+import org.mapstruct.Mapper;
+import java.math.*;
+import java.time.*;
+import java.util.*;
+
+@Mapper(componentModel = "cdi", uses = BaseMapper.class)
+public interface {{serviceName}}DTOsMapper {
+
+    // request mappings
+{{~#each mapperRequestDtoEntity as |entry|}}
+    {{~#if requestDto}}
+    {{inputType}} as{{inputType}}({{requestDto}} dto);
+    {{~/if}}
+    {{~#if methodParameters}}
+    {{inputType}} as{{inputType}}({{{methodParameters operation}}});
+    {{~/if}}
+{{~/each}}
+
+    // response mappings
+{{~#each mapperResponseDtoEntity as |entry|}}
+    {{#if isResponsePaginated}}
+    List<{{responseDto}}> as{{responseDto}}List(List<{{outputType}}> entityList);
+
+    default {{responseEntityName}} as{{responseEntityName}}(List<{{outputType}}> entities) {
+        var dto = new {{responseEntityName}}();
+        dto.setContent(as{{responseDto}}List(entities));
+        return dto;
+    }
+    {{~else if isResponseArray}}
+    List<{{responseDto}}> as{{responseDto}}List(List<{{outputType}}> entityList);
+    {{~else}}
+    {{responseDto}} as{{responseDto}}({{outputType}} entity);
+    {{/if}}
+{{~/each}}
+
+}

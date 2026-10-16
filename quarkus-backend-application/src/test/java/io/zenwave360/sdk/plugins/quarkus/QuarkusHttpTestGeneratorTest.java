@@ -26,19 +26,19 @@ class QuarkusHttpTestGeneratorTest {
 
         new MainGenerator().generate(plugin);
 
-        Path root = Path.of(targetFolder, "src/test/kotlin/io/example/orders/adapters/web");
-        String base = Files.readString(root.resolve("BaseQuarkusHttpTest.kt"));
-        String test = Files.readString(root.resolve("CustomerApiIntegrationTest.kt"));
+        Path root = Path.of(targetFolder, "src/test/java/io/example/orders/adapters/web");
+        String base = Files.readString(root.resolve("BaseQuarkusHttpTest.java"));
+        String test = Files.readString(root.resolve("CustomerApiIntegrationTest.java"));
 
         assertTrue(base.contains("@QuarkusTest"));
         assertTrue(base.contains("java.net.http.HttpClient"));
         assertTrue(test.contains("@QuarkusTest") || base.contains("@QuarkusTest"));
-        assertTrue(test.contains("@TestHTTPEndpoint(CustomerApiController::class)"));
+        assertTrue(test.contains("@TestHTTPEndpoint(CustomerApiController.class)"));
         assertTrue(test.contains("@TestHTTPResource"));
         assertTrue(test.contains("httpClient.send"));
         assertTrue(test.contains("java.net.http.HttpRequest") || test.contains("HttpRequest.newBuilder"));
-        assertTrue(test.contains("fun testCreateCustomer_201"));
-        assertTrue(test.contains("fun testListCustomers_200"));
+        assertTrue(test.contains("void testCreateCustomer_201"));
+        assertTrue(test.contains("void testListCustomers_200"));
         assertFalse((base + test).contains("org.springframework"));
         assertFalse(test.contains("WebTestClient"));
     }

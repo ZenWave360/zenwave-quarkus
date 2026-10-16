@@ -1,0 +1,9 @@
+package {{layout.infrastructureRepositoryCommonPackage}};
+
+import io.quarkus.test.junit.QuarkusTest;
+import jakarta.transaction.Transactional;
+
+@QuarkusTest
+@Transactional
+public abstract class BaseRepositoryIntegrationTest {
+}

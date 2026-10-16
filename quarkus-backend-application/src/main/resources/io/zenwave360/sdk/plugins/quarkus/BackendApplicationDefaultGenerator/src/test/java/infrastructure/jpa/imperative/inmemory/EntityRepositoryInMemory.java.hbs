@@ -1,0 +1,45 @@
+package {{layout.infrastructureRepositoryPackage}}.inmemory;
+
+import {{layout.entitiesPackage}}.*;
+import {{layout.outboundRepositoryPackage}}.{{entity.className}}Repository;
+
+import java.util.Objects;
+
+public class {{entity.className}}RepositoryInMemory
+        extends InMemoryJpaRepository<{{entity.className}}, {{idJavaType}}>
+        implements {{entity.className}}Repository {
+
+{{~#if (naturalIdFields entity)}}
+    @Override
+    public {{{naturalIdsRepoMethodSignature entity}}} {
+        return java.util.Optional.ofNullable(entities.values().stream()
+                .filter(entity -> {{#joinWithTemplate (naturalIdFields entity) delimiter=' && '}}Objects.equals(entity.get{{capitalize name}}(), {{name}}){{/joinWithTemplate}})
+                .findFirst()
+                .orElse(null));
+    }
+{{~/if}}
+
+    private long sequence = 1;
+
+    @Override
+    protected {{idJavaType}} idOf({{entity.className}} entity) {
+        return entity.getId();
+    }
+
+    @Override
+    protected void setId({{entity.className}} entity, {{idJavaType}} id) {
+        entity.setId(id);
+    }
+
+    @Override
+    protected {{idJavaType}} newId() {
+        long next = sequence++;
+        {{#if (eq idJavaType "String")}}
+        return Long.toString(next);
+        {{else if (eq idJavaType "Integer")}}
+        return (int) next;
+        {{else}}
+        return next;
+        {{/if}}
+    }
+}

@@ -1,0 +1,15 @@
+{{~#each operations as |operation|~}}
+    {{~#each operation.responses as |response|}}
+
+        /**
+         * Test: {{operation.description}} for {{response.description}}.
+         */
+        @Test
+        void test{{asJavaTypeName operation.operationId}}_{{response.x--statusCode}}() throws Exception {
+        {{~#assign "requestDTOClassName"}}{{asDtoName operation.x--request-dto }}{{/assign~}}
+        {{~#assign "requestBodyVar"}}requestBody{{/assign~}}
+        {{> (partial 'requestSetup')}}
+        {{> (partial 'exchange')}}
+        }
+    {{~/each~}}
+{{~/each~}}

@@ -11,7 +11,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
 
-import static io.zenwave360.sdk.templating.OutputFormatType.KOTLIN;
+import static io.zenwave360.sdk.templating.OutputFormatType.JAVA;
 
 /**
  * Quarkus templates for {@code OpenAPIControllersPlugin}, selected with the {@code templates} option.
@@ -19,6 +19,7 @@ import static io.zenwave360.sdk.templating.OutputFormatType.KOTLIN;
  * <p>Same target files as
  * {@code ../zenwave-sdk/plugins/customizations/kotlin-backend-application}
  * ({@code OpenAPIControllersKotlinTemplates}), with {@code web/jaxrs} instead of {@code web/{{webFlavor}}}.
+ * Generated sources are Java.
  */
 public class OpenAPIControllersQuarkusTemplates extends ProjectTemplates {
 
@@ -33,16 +34,16 @@ public class OpenAPIControllersQuarkusTemplates extends ProjectTemplates {
         setTemplatesFolder("io/zenwave360/sdk/plugins/quarkus/OpenAPIControllersGenerator");
 
         var layoutNames = new ProjectLayout();
-        this.addTemplate(this.singleTemplates, "src/main/kotlin", "web/common/PatchMap.kt",
-                layoutNames.adaptersWebCommonPackage, "PatchMap.kt", KOTLIN, skipPatchMap, false);
-        this.addTemplate(this.singleTemplates, "src/main/kotlin", "web/mappers/BaseMapper.kt",
-                layoutNames.adaptersWebMappersCommonPackage, "BaseMapper.kt", KOTLIN, null, false);
-        this.addTemplate(this.serviceTemplates, "src/main/kotlin", "web/mappers/ServiceDTOsMapper.kt",
-                layoutNames.adaptersWebMappersPackage, "{{serviceName}}DTOsMapper.kt", KOTLIN, null, true);
-        this.addTemplate(this.serviceTemplates, "src/main/kotlin", "web/jaxrs/ServiceApiController.kt",
-                layoutNames.adaptersWebPackage, "{{serviceName}}ApiController.kt", KOTLIN, null, false);
-        this.addTemplate(this.serviceTemplates, "src/test/kotlin", "web/jaxrs/ServiceApiControllerTest.kt",
-                layoutNames.adaptersWebPackage, "{{serviceName}}ApiControllerTest.kt", KOTLIN, skipControllerTests, true);
+        this.addTemplate(this.singleTemplates, "src/main/java", "web/common/PatchMap.java",
+                layoutNames.adaptersWebCommonPackage, "PatchMap.java", JAVA, skipPatchMap, false);
+        this.addTemplate(this.singleTemplates, "src/main/java", "web/mappers/BaseMapper.java",
+                layoutNames.adaptersWebMappersCommonPackage, "BaseMapper.java", JAVA, null, false);
+        this.addTemplate(this.serviceTemplates, "src/main/java", "web/mappers/ServiceDTOsMapper.java",
+                layoutNames.adaptersWebMappersPackage, "{{serviceName}}DTOsMapper.java", JAVA, null, true);
+        this.addTemplate(this.serviceTemplates, "src/main/java", "web/jaxrs/ServiceApiController.java",
+                layoutNames.adaptersWebPackage, "{{serviceName}}ApiController.java", JAVA, null, false);
+        this.addTemplate(this.serviceTemplates, "src/test/java", "web/jaxrs/ServiceApiControllerTest.java",
+                layoutNames.adaptersWebPackage, "{{serviceName}}ApiControllerTest.java", JAVA, skipControllerTests, true);
     }
 
     @Override

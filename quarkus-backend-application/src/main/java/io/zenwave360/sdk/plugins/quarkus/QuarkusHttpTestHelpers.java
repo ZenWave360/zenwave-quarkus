@@ -5,7 +5,7 @@ import com.github.jknack.handlebars.Options;
 import java.util.Map;
 
 /**
- * Kotlin object literals for Quarkus HTTP tests. JSON examples stay on {@code SpringWebTestClientHelpers}.
+ * Java object literals for Quarkus HTTP tests. JSON examples stay on {@code SpringWebTestClientHelpers}.
  */
 public class QuarkusHttpTestHelpers {
 
@@ -22,10 +22,10 @@ public class QuarkusHttpTestHelpers {
         boolean isObject = "object".equals(property.get("type"));
         String schemaName = (String) property.get("x--schema-name");
         if (isArray) {
-            return "mutableListOf()";
+            return "new java.util.ArrayList<>()";
         }
         if (isObject) {
-            return openApiModelNamePrefix + schemaName + openApiModelNameSuffix + "()";
+            return "new " + openApiModelNamePrefix + schemaName + openApiModelNameSuffix + "()";
         }
         return "null";
     }

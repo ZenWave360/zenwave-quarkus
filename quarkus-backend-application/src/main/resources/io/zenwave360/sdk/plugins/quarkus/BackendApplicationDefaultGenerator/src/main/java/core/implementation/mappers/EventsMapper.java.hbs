@@ -1,0 +1,27 @@
+package {{layout.coreImplementationMappersPackage}};
+
+import {{layout.coreImplementationMappersCommonPackage}}.BaseMapper;
+import {{layout.entitiesPackage}}.*;
+{{~#if (includeDomainEvents zdl)}}
+import {{layout.domainEventsPackage}}.*;
+{{~/if}}
+import {{layout.inboundDtosPackage}}.*;
+
+import org.mapstruct.Mapper;
+
+@Mapper(componentModel = "cdi", uses = BaseMapper.class)
+public interface EventsMapper {
+
+{{~#each (listOfPairEventEntity zdl) as |pair|}}
+    {{~assign 'eventPackage' (ifTruthy pair.isAsyncApi layout.asyncApiModelPackage layout.domainEventsPackage) }}
+    {{~#if pair.entity}}
+    {{eventPackage}}.{{pair.event.name}} as{{{pair.event.name}}}({{pair.entity.className}} {{asInstanceName pair.entity.name}});
+    {{~else}}
+    {{eventPackage}}.{{pair.event.name}} as{{{pair.event.name}}}({{{nullableMethodParametersSignature "application.events-mapper" method}}});
+    {{~/if}}
+{{~/each}}
+
+{{~#each (domainEventsWithAsyncapiAnnotation zdl) as |event|}}
+    {{layout.asyncApiModelPackage}}.{{event.name}} as{{{event.name}}}({{event.className}} event);
+{{~/each}}
+}

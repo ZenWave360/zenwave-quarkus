@@ -1,0 +1,112 @@
+package {{layout.adaptersWebPackage}};
+
+import {{layout.inboundPackage}}.*;
+import {{layout.inboundDtosPackage}}.*;
+import {{openApiModelPackage}}.*;
+import {{layout.adaptersWebMappersPackage}}.*;
+
+import jakarta.enterprise.context.ApplicationScoped;
+import jakarta.inject.Inject;
+import jakarta.validation.Valid;
+import jakarta.ws.rs.Consumes;
+import jakarta.ws.rs.DELETE;
+import jakarta.ws.rs.DefaultValue;
+import jakarta.ws.rs.GET;
+import jakarta.ws.rs.HeaderParam;
+import jakarta.ws.rs.PATCH;
+import jakarta.ws.rs.POST;
+import jakarta.ws.rs.PUT;
+import jakarta.ws.rs.Path;
+import jakarta.ws.rs.PathParam;
+import jakarta.ws.rs.Produces;
+import jakarta.ws.rs.QueryParam;
+import jakarta.ws.rs.core.MediaType;
+import jakarta.ws.rs.core.Response;
+import java.util.*;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+/**
+ * JAX-RS resource for {{serviceName}}.
+ */
+@ApplicationScoped
+@Path("/")
+public class {{serviceName}}ApiController {
+
+{{#each entitiesServices as |service|}}
+    private final {{service}} {{asInstanceName service}};
+{{/each}}
+    private final {{serviceName}}DTOsMapper mapper;
+
+    private final Logger log = LoggerFactory.getLogger(getClass());
+
+    @Inject
+    public {{serviceName}}ApiController(
+{{#each entitiesServices as |service|}}
+            {{service}} {{asInstanceName service}},
+{{/each}}
+            {{serviceName}}DTOsMapper mapper
+    ) {
+{{#each entitiesServices as |service|}}
+        this.{{asInstanceName service}} = {{asInstanceName service}};
+{{/each}}
+        this.mapper = mapper;
+    }
+
+{{#each serviceOperations as |operation|}}
+    {{~#assign "TODO"}}{{#unless serviceMethod}}/* TODO: service */ {{/unless}}{{/assign}}
+
+    {{verbAnnotation httpMethod}}
+    @Path("{{httpPath operation.operation}}")
+    {{~#if requestBodySchema}}
+    @Consumes(MediaType.APPLICATION_JSON)
+    {{~/if}}
+    {{~#unless isBinaryDownload}}
+    @Produces(MediaType.APPLICATION_JSON)
+    {{~/unless}}
+    public {{jaxrsReturnType operation}} {{operationId}}({{{jaxrsMethodParameters operation.operation}}}) {
+        log.debug("REST request to {{operationId}}: {{methodParameterPlaceholders}}"{{#if methodParameters}}, {{methodParameterInstances}}{{/if}});
+    {{~#if (eq httpMethod 'patch')}}
+    {{~else if requestBodySchema}}
+        var {{mappedInputVariable}} = mapper.as{{serviceMethodParameter}}({{reqBodyVariableName}});
+    {{~else if serviceMethodParameter}}
+        var {{mappedInputVariable}} = mapper.as{{serviceMethodParameter}}({{methodParameterInstances}});
+    {{~/if}}
+    {{~#if isBinaryDownload}}
+        {{TODO}}{{asInstanceName serviceMethod.serviceName}}.{{serviceCall operation}};
+        byte[] bytes = new byte[0];
+        return Response.status({{statusCode}}).type(MediaType.APPLICATION_OCTET_STREAM).entity(bytes).build();
+    {{~else if isResponsePaginated}}
+        var {{asInstanceName methodReturnType}}List = {{TODO}}{{asInstanceName serviceMethod.serviceName}}.{{serviceCall operation}};
+        return mapper.as{{responseEntityName}}({{asInstanceName methodReturnType}}List);
+    {{~else if isResponseArray}}
+        var {{methodReturnTypeInstance}} = {{TODO}}{{asInstanceName serviceMethod.serviceName}}.{{serviceCall operation}};
+        var responseDTO = mapper.as{{responseDtoName}}List({{methodReturnTypeInstance}});
+        {{~#if (returnsResponse operation)}}
+        return Response.status({{statusCode}}).entity(responseDTO).build();
+        {{~else}}
+        return responseDTO;
+        {{~/if}}
+    {{~else if responseSchemaName}}
+        var {{methodReturnTypeInstance}} = {{TODO}}{{asInstanceName serviceMethod.serviceName}}.{{serviceCall operation}};
+        {{~#if returnTypeIsOptional}}
+        if ({{methodReturnTypeInstance}} != null) {
+            return Response.status({{statusCode}}).entity(mapper.as{{responseDtoName}}({{methodReturnTypeInstance}})).build();
+        }
+        return Response.status(404).build();
+        {{~else if (returnsResponse operation)}}
+        var responseDTO = mapper.as{{responseDtoName}}({{methodReturnTypeInstance}});
+        return Response.status({{statusCode}}).entity(responseDTO).build();
+        {{~else}}
+        return mapper.as{{responseDtoName}}({{methodReturnTypeInstance}});
+        {{~/if}}
+    {{~else}}
+        {{~#if (and serviceMethod.serviceName serviceMethodCall)}}
+        {{TODO}}{{asInstanceName serviceMethod.serviceName}}.{{serviceCall operation}};
+        {{~/if}}
+        return Response.status({{statusCode}}).build();
+    {{~/if}}
+    }
+
+{{/each}}
+}

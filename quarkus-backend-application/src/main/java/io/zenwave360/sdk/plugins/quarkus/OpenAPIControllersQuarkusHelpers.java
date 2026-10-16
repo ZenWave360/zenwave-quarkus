@@ -11,12 +11,11 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 import static org.apache.commons.lang3.StringUtils.upperCase;
 
 /**
- * Kotlin and JAX-RS helpers for {@link OpenAPIControllersQuarkusTemplates}.
+ * JAX-RS helpers for {@link OpenAPIControllersQuarkusTemplates}.
  */
 public class OpenAPIControllersQuarkusHelpers {
 
@@ -36,16 +35,15 @@ public class OpenAPIControllersQuarkusHelpers {
         }
         var parts = new ArrayList<String>();
         for (var param : methodParams) {
-            String type = kotlinType(param.getKey());
+            String type = javaType(param.getKey());
             String name = param.getValue();
             Map<String, Object> raw = rawByName.get(name);
             if (raw == null) {
-                parts.add("@Valid " + name + ": " + type);
+                parts.add("@Valid " + type + " " + name);
                 continue;
             }
             String in = JSONPath.get(raw, "in");
             Object defaultValue = JSONPath.get(raw, "schema.default");
-            boolean required = JSONPath.get(raw, "required", false);
             var annotation = new StringBuilder();
             if ("path".equals(in)) {
                 annotation.append("@PathParam(\"").append(name).append("\")");
@@ -60,8 +58,7 @@ public class OpenAPIControllersQuarkusHelpers {
                 }
                 annotation.append("@DefaultValue(\"").append(defaultValue).append("\")");
             }
-            boolean nullable = !required && defaultValue == null && !"path".equals(in);
-            parts.add((annotation.length() > 0 ? annotation + " " : "") + name + ": " + type + (nullable ? "?" : ""));
+            parts.add((annotation.length() > 0 ? annotation + " " : "") + type + " " + name);
         }
         return String.join(", ", parts);
     }
@@ -70,9 +67,7 @@ public class OpenAPIControllersQuarkusHelpers {
         if (returnsResponse(serviceOperation, options)) {
             return "Response";
         }
-        return kotlinType(String.valueOf(serviceOperation.get("responseEntityExpression")))
-                .replace("void", "Unit")
-                .replace("Void", "Unit");
+        return javaType(String.valueOf(serviceOperation.get("responseEntityExpression")));
     }
 
     public boolean returnsResponse(Map serviceOperation, Options options) {
@@ -109,14 +104,9 @@ public class OpenAPIControllersQuarkusHelpers {
     }
 
     public String methodParameters(Map operation, Options options) {
-        var requiredFields = JSONPath.get(operation, "$.requestBody.content..schema.required[*]", List.<String>of());
-        var fieldsWitDefault = JSONPath.get(operation, "$.requestBody.content..schema.properties[*][?(@.default && !(@.default == 'null'))].x--property-name", List.of());
-        var requiredParams = JSONPath.get(operation, "parameters[?(@.required == true)].name", List.<String>of());
-        var paramsWithDefault = JSONPath.get(operation, "$.parameters[*][?(@.schema.default)].name", List.<String>of());
-        var required = Stream.of(requiredFields, fieldsWitDefault, requiredParams, paramsWithDefault, List.of("reqBody", "input")).flatMap(List::stream).distinct().toList();
-        return ZDLHttpUtils.methodParameters(operation, openApiModelNamePrefix, openApiModelNameSuffix).stream().map(param -> {
-            return param.getValue() + ": " + kotlinType(param.getKey()) + (required.contains(param.getValue()) ? "" : "?");
-        }).collect(Collectors.joining(", "));
+        return ZDLHttpUtils.methodParameters(operation, openApiModelNamePrefix, openApiModelNameSuffix).stream()
+                .map(param -> javaType(param.getKey()) + " " + param.getValue())
+                .collect(Collectors.joining(", "));
     }
 
     public CharSequence asMethodParametersInitializer(Map<String, Object> operation, Options options) throws IOException {
@@ -126,68 +116,62 @@ public class OpenAPIControllersQuarkusHelpers {
             return "";
         }
         return methodParams.stream()
-                .map(param -> "val " + param.getValue() + ": " + kotlinType(param.getKey()) + " = " + instantiateVar(openapi, param.getValue(), param.getKey()))
-                .collect(Collectors.joining("\n"))
-                .replace("Map = mutableMapOf", "Map<String, Any?> = mutableMapOf");
+                .map(param -> instantiateStatements(openapi, param.getValue(), param.getKey()))
+                .collect(Collectors.joining("\n"));
     }
 
-    private String kotlinType(String type) {
+    private String javaType(String type) {
         if (type == null) {
             return "";
         }
-        return type.replace("Integer", "Int").replace("Map", "PatchMap");
+        return type.replace("Map", "PatchMap");
     }
 
-    private String instantiateVar(Map<String, Object> api, String varName, String type) {
-        String kotlin = kotlinType(type);
-        if ("Int".equals(kotlin) || "Integer".equals(type)) {
-            return "0";
+    private String instantiateStatements(Map<String, Object> api, String varName, String type) {
+        String java = javaType(type);
+        if ("Integer".equals(java)) {
+            return java + " " + varName + " = 0;";
         }
-        if ("Long".equals(kotlin)) {
-            return "0L";
+        if ("Long".equals(java)) {
+            return java + " " + varName + " = 0L;";
         }
-        if ("String".equals(kotlin)) {
-            return "\"\"";
+        if ("String".equals(java)) {
+            return java + " " + varName + " = \"\";";
         }
-        if ("Boolean".equals(kotlin)) {
-            return "false";
+        if ("Boolean".equals(java)) {
+            return java + " " + varName + " = false;";
         }
-        if ("Double".equals(kotlin)) {
-            return "0.0";
+        if ("Double".equals(java)) {
+            return java + " " + varName + " = 0.0;";
         }
-        if ("Float".equals(kotlin)) {
-            return "0.0f";
+        if ("Float".equals(java)) {
+            return java + " " + varName + " = 0.0f;";
         }
-        if ("LocalDate".equals(kotlin)) {
-            return "java.time.LocalDate.now()";
+        if ("LocalDate".equals(java)) {
+            return "java.time.LocalDate " + varName + " = java.time.LocalDate.now();";
         }
-        if (kotlin.startsWith("List<") || kotlin.startsWith("MutableList<")) {
-            return "mutableListOf()";
+        if (java.startsWith("List<")) {
+            return java + " " + varName + " = new java.util.ArrayList<>();";
         }
-        if (kotlin.startsWith("Set<") || kotlin.startsWith("MutableSet<")) {
-            return "mutableSetOf()";
+        if (java.startsWith("Set<")) {
+            return java + " " + varName + " = new java.util.HashSet<>();";
         }
-        if ("PatchMap".equals(kotlin) || kotlin.startsWith("PatchMap<") || kotlin.startsWith("Map<")) {
-            return "mutableMapOf()";
+        if ("PatchMap".equals(java) || java.startsWith("PatchMap<")) {
+            return java + " " + varName + " = new PatchMap();";
         }
-        if (kotlin.contains("MultipartFile")) {
-            return "null";
+        if (java.contains("MultipartFile")) {
+            return java + " " + varName + " = null;";
         }
-        if (kotlin.contains("ByteArray")) {
-            return "byteArrayOf()";
+        if ("byte[]".equals(java) || java.contains("byte[]")) {
+            return "byte[] " + varName + " = new byte[0];";
         }
-        if (kotlin.endsWith("DTO") || kotlin.endsWith(openApiModelNameSuffix)) {
-            // OpenAPI models are Java beans. Kotlin named arguments do not apply to them.
-            String assignments = populateConstructor(api, type);
-            if (assignments.isEmpty()) {
-                return kotlin + "()";
-            }
-            return kotlin + "().apply {\n" + assignments + "\n}";
+        if (java.endsWith("DTO") || (openApiModelNameSuffix != null && !openApiModelNameSuffix.isEmpty() && java.endsWith(openApiModelNameSuffix))) {
+            return java + " " + varName + " = new " + java + "();\n" + populateSetters(api, type, varName);
         }
-        return "null";
+        return java + " " + varName + " = null;";
     }
 
-    private String populateConstructor(Map api, String type) {
+    private String populateSetters(Map api, String type, String varName) {
         if (openApiModelNameSuffix == null || openApiModelNameSuffix.isEmpty()) {
             return "";
         }
@@ -200,7 +184,7 @@ public class OpenAPIControllersQuarkusHelpers {
         var properties = JSONPath.get(schema, "$.properties", Map.<String, Map<String, Object>>of());
         return properties.entrySet().stream()
                 .filter(entry -> required.contains(entry.getKey()))
-                .map(entry -> entry.getKey() + " = " + populateProperty(entry.getValue()))
+                .map(entry -> varName + ".set" + StringUtils.capitalize(entry.getKey()) + "(" + populateProperty(entry.getValue()) + ");")
                 .collect(Collectors.joining("\n"));
     }
 
@@ -216,7 +200,7 @@ public class OpenAPIControllersQuarkusHelpers {
             return String.format("%s%s.%s", otherEntity, openApiModelNameSuffix, upperCase(enums.get(0)));
         }
         if ("date".equals(format)) {
-            return "LocalDate.now()";
+            return "java.time.LocalDate.now()";
         }
         if ("date-time".equals(format)) {
             return "java.time.Instant.now()";
@@ -234,10 +218,10 @@ public class OpenAPIControllersQuarkusHelpers {
             return "true";
         }
         if ("array".equals(type)) {
-            return "mutableListOf()";
+            return "new java.util.ArrayList<>()";
         }
         if (property.get("x--schema-name") != null) {
-            return property.get("x--schema-name") + openApiModelNameSuffix + "()";
+            return "new " + property.get("x--schema-name") + openApiModelNameSuffix + "()";
         }
         return "\"aaa\"";
     }

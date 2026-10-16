@@ -1,0 +1,24 @@
+package {{layout.inboundPackage}};
+
+import {{layout.entitiesPackage}}.*;
+import {{layout.inboundDtosPackage}}.*;
+import java.math.*;
+import java.time.*;
+import java.util.*;
+{{~#if (jsonPath service 'methods[*][?(@.options.async)]')}}
+import java.util.concurrent.CompletableFuture;
+{{~/if}}
+
+/**
+ * Inbound service port for managing {{service.entityNames}}.
+ */
+{{annotate "inbound.service-port" service.javaService service}}
+public interface {{service.name}} {
+
+{{#each service.methods as |method|}}
+    {{assign "isInterface" true}}
+    {{~> (partial '../implementation/partials/serviceMethodJavadoc')}}
+    {{~> (partial '../implementation/partials/serviceMethodSignature') artifactType="inbound.service-port"}};
+{{/each}}
+
+}

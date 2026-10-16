@@ -1,0 +1,87 @@
+package {{layout.entitiesPackage}};
+
+import java.util.Arrays;
+import java.util.List;
+
+{{~assign "_aggregate" aggregate}}
+{{~assign "_rootEntity" (aggregateRootEntity aggregate)}}
+public final class {{aggregateTransitionsClassName aggregate}} {
+
+    private {{aggregateTransitionsClassName aggregate}}() {
+    }
+
+{{#each (aggregateTransitionMethods aggregate) as |method|}}
+    public static void {{transitionMethodName method}}({{_rootEntity.className}} entity) {
+        require("{{method.name}}", entity{{#if (commandFromStatesSignature method _aggregate)}}, {{commandFromStatesSignature method _aggregate}}{{/if}});
+    }
+
+{{/each}}
+    private static void require(String command, {{_rootEntity.className}} entity, {{lifecycleFieldType aggregate}}... allowed) {
+        var current = entity.get{{capitalize aggregate.lifecycle.field}}();
+        if (current != null) {
+            for (var candidate : allowed) {
+                if (candidate == current) {
+                    return;
+                }
+            }
+        }
+        throw new InvalidStateTransitionException(
+                entity.getClass().getSimpleName(),
+                entity.getId(),
+                {{{transitionNaturalIdExpression _rootEntity}}},
+                command,
+                current,
+                Arrays.asList(allowed)
+        );
+    }
+
+    public static class InvalidStateTransitionException extends IllegalStateException {
+        private final String entityType;
+        private final Object entityId;
+        private final Object naturalId;
+        private final String operation;
+        private final Object currentState;
+        private final List<?> allowedStates;
+
+        public InvalidStateTransitionException(
+                String entityType,
+                Object entityId,
+                Object naturalId,
+                String operation,
+                Object currentState,
+                List<?> allowedStates) {
+            super("Invalid state transition for " + entityType + " (" + (naturalId != null ? naturalId : "id=" + entityId) + "): "
+                    + "operation '" + operation + "' not allowed from state " + currentState + ", allowed states: " + allowedStates);
+            this.entityType = entityType;
+            this.entityId = entityId;
+            this.naturalId = naturalId;
+            this.operation = operation;
+            this.currentState = currentState;
+            this.allowedStates = allowedStates;
+        }
+
+        public String getEntityType() {
+            return entityType;
+        }
+
+        public Object getEntityId() {
+            return entityId;
+        }
+
+        public Object getNaturalId() {
+            return naturalId;
+        }
+
+        public String getOperation() {
+            return operation;
+        }
+
+        public Object getCurrentState() {
+            return currentState;
+        }
+
+        public List<?> getAllowedStates() {
+            return allowedStates;
+        }
+    }
+}

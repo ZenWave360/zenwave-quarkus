@@ -1,0 +1,14 @@
+var input = new {{methodParameterType method}}();
+{{~#unless (jsonPath method 'options.patch')}}
+{{~#each (methodParameterFields method) as |field|}}
+    {{~#unless field.isArray}}
+input.set{{capitalize field.name}}({{{populateField field}}});
+    {{~/unless}}
+{{~else}}
+{{~#each entity.fields as |field|}}
+    {{~#unless (or field.isId field.isArray)}}
+input.set{{capitalize field.name}}({{{populateField field}}});
+    {{~/unless}}
+{{~/each}}
+{{~/each}}
+{{~/unless}}

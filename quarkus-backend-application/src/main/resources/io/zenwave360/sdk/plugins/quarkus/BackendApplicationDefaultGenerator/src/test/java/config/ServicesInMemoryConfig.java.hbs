@@ -1,0 +1,79 @@
+package {{layout.moduleConfigPackage}};
+
+{{#if entities}}
+import {{layout.entitiesPackage}}.*;
+{{/if}}
+{{#if services}}
+import {{layout.inboundPackage}}.*;
+import {{layout.coreImplementationPackage}}.*;
+import {{layout.coreImplementationMappersPackage}}.*;
+import org.mapstruct.factory.Mappers;
+{{/if}}
+{{#if includeEmitEventsImplementation}}
+    {{~#if (needsEventsProducer service)}}
+import {{layout.asyncApiProducerApiPackage}}.*;
+    {{~/if}}
+{{/if}}
+{{~#if (needsEventBus service)}}
+import {{layout.infrastructureEventsPackage}}.*;
+{{~/if}}
+import {{layout.configPackage}}.TestDataLoader;
+
+import java.util.List;
+
+/**
+ * In-memory services. Constructed the same way the CDI beans are, without a container.
+ */
+public class ServicesInMemoryConfig extends RepositoriesInMemoryConfig {
+
+{{#if (includeEmitEventsImplementation service)}}
+    {{~#if (needsEventsProducer service)}}
+    protected final EventsProducerInMemoryContext eventsProducerInMemoryContext = new EventsProducerInMemoryContext();
+    {{~/if}}
+{{/if}}
+{{~#if (needsEventBus service)}}
+    private final InMemoryEventPublisher eventPublisher = new InMemoryEventPublisher();
+{{~/if}}
+
+{{~#each services as |service|}}
+    protected final {{service.name}} {{asInstanceName service.name}} = new {{service.name}}Impl(
+        {{~#each service.entities as |entity|~}}
+{{#unless (skipEntityRepository entity)}}{{entity.instanceName}}Repository(), {{/unless}}
+        {{~/each~}}
+        Mappers.getMapper({{service.name}}Mapper.class){{#if (includeEmitEventsImplementation service)}}{{#if (needsEventsProducer service)}},
+        eventsProducerInMemoryContext.{{eventsProducerInstance service.name}}(){{/if}}{{#if (needsEventBus service)}},
+        eventPublisher{{/if}},
+        Mappers.getMapper(EventsMapper.class){{/if}}
+    );
+{{~/each}}
+
+{{~#each services as |service|}}
+    public {{service.name}} {{asInstanceName service.name}}() {
+        return {{asInstanceName service.name}};
+    }
+{{~/each}}
+
+{{assign "aggregates" (findAggregates entities)}}
+{{~#each aggregates as |entity|}}
+    static List<{{entity.className}}> _{{entity.instanceNamePlural}};
+{{~/each}}
+
+    public void reloadTestData() {
+        {{assign "phisicalEntities" (jsonPath entities "$[?(@.options.skip != true)]")}}
+        var testDataLoader = new TestDataLoader(List.of({{#joinWithTemplate phisicalEntities delimiter=', ' as |entity|}}{{entity.className}}.class{{/joinWithTemplate}}));
+        {{~#each aggregates as |entity|}}
+        var {{entity.instanceNamePlural}} = _{{entity.instanceNamePlural}} != null ? _{{entity.instanceNamePlural}} : testDataLoader.loadCollectionTestDataAsObjects({{entity.className}}.class);
+        {{entity.instanceName}}Repository().deleteAll();
+        {{entity.instanceName}}Repository().saveAll({{entity.instanceNamePlural}});
+        {{~/each}}
+        {{~#if (needsEventBus service)}}
+        eventPublisher.getEvents().clear();
+        {{~/if}}
+    }
+
+{{~#if (needsEventBus service)}}
+    public InMemoryEventPublisher eventPublisher() {
+        return eventPublisher;
+    }
+{{~/if}}
+}

@@ -1,0 +1,86 @@
+package {{layout.coreImplementationMappersPackage}};
+
+import {{layout.coreImplementationMappersCommonPackage}}.BaseMapper;
+import {{layout.entitiesPackage}}.*;
+import {{layout.inboundDtosPackage}}.*;
+
+import org.mapstruct.AfterMapping;
+import org.mapstruct.Mapper;
+import org.mapstruct.Mapping;
+import org.mapstruct.MappingTarget;
+
+@Mapper(componentModel = "cdi", uses = BaseMapper.class)
+public interface {{service.name}}Mapper {
+
+// input mappings
+{{~#each (serviceParameterEntityPairs service) as |entry|}}
+    // {{@key}} {{method.name}}
+    {{~#if (jsonPath input 'options.inline')}}
+    default {{entity.className}} as{{entity.className}}({{{mapperInputSignature input.className}}}) {
+        var entity = new {{entity.className}}();
+        // TODO: implement this method
+        {{~#each input.fields as |field|}}
+        // entity.set{{capitalize field.name}}({{field.name}});
+        {{~/each}}
+        return entity;
+    }
+    default {{entity.className}} update({{entity.className}} entity, {{{mapperInputSignature input.className}}}) {
+        // TODO: implement this method
+        {{~#each input.fields as |field|}}
+        // entity.set{{capitalize field.name}}({{field.name}});
+        {{~/each}}
+        return entity;
+    }
+    {{~else if (jsonPath method 'options.patch')}}
+    default {{entity.className}} as{{entity.className}}({{{mapperInputSignature input.className}}}) {
+        var entity = new {{entity.className}}();
+        // TODO: implement this method
+        {{~#each input.fields as |field|}}
+        // entity.set{{capitalize field.name}}(({{javaType field}}) input.get("{{field.name}}"));
+        {{~/each}}
+        return entity;
+    }
+    default {{entity.className}} update({{entity.className}} entity, {{{mapperInputSignature input.className}}}) {
+        // TODO: implement this method
+        {{~#each input.fields as |field|}}
+        // entity.set{{capitalize field.name}}(({{javaType field}}) input.get("{{field.name}}"));
+        {{~/each}}
+        return entity;
+    }
+    {{~else}}
+        {{~#if (not (eq entity.className input))}}
+            {{{mapperInputAnnotations input.className}}}
+    {{entity.className}} as{{entity.className}}({{{mapperInputSignature input.className}}});
+        {{~/if}}
+        {{#unless (skipEntityId entity)~}}@Mapping(target = "id", ignore = true){{/unless~}}
+        {{{mapperInputAnnotations input.className}}}
+    {{entity.className}} update(@MappingTarget {{entity.className}} entity, {{{mapperInputSignature input.className}}});
+    {{~/if}}
+{{~/each}}
+// output mappings
+{{~#each (serviceEntityReturnTypePairs service) as |entry|}}
+    // {{@key}} {{method.name}}
+    {{output.className}} as{{output.className}}({{entity.className}} entity);
+    {{~#if entry.isArray}}
+    java.util.List<{{output.className}}> as{{output.className}}List(java.util.List<{{entity.className}}> entity);
+    {{~/if}}
+
+{{~/each}}
+
+{{~#each service.aggregates as |entityName|}}
+    {{~assign "entity" (findEntity entityName)}}
+    {{~assign 'relationships' (findOwnedOneToManyRelationships entity)}}
+    {{~#if relationships}}
+    @AfterMapping
+    default void manageRelationships(@MappingTarget {{entity.className}} entity) {
+        {{~#each relationships as |relationship|}}
+        if (entity.get{{capitalize relationship.fieldName}}() != null) {
+            for (var {{relationship.fieldName}} : entity.get{{capitalize relationship.fieldName}}()) {
+                {{relationship.fieldName}}.set{{capitalize relationship.otherEntityFieldName}}(entity);
+            }
+        }
+        {{~/each}}
+    }
+    {{~/if}}
+{{~/each}}
+}

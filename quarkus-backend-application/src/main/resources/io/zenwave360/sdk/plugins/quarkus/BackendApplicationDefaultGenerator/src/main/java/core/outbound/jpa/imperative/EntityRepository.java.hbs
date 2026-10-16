@@ -1,0 +1,37 @@
+package {{layout.outboundRepositoryPackage}};
+{{~assign 'aggregate' (findEntityAggregate entity.name)}}
+
+import {{layout.entitiesPackage}}.*;
+
+import java.util.List;
+
+/**
+ * Outbound repository port for the {{entity.className}} entity.
+ */
+public interface {{entity.className}}Repository {
+
+{{~#if aggregate}}
+    default {{aggregate}} find{{aggregate}}ById({{idJavaType}} id) {
+        var found = findById(id);
+        return found == null ? null : new {{aggregate}}(found);
+    }
+{{~/if}}
+
+    {{entity.className}} save({{entity.className}} entity);
+
+    List<{{entity.className}}> saveAll(List<{{entity.className}}> entities);
+
+    {{entity.className}} findById({{idJavaType}} id);
+
+    void deleteById({{idJavaType}} id);
+
+    void delete({{entity.className}} entity);
+
+    List<{{entity.className}}> findAll();
+
+    List<{{entity.className}}> findAll(int page, int size);
+
+{{~#if (naturalIdFields entity)}}
+    {{{naturalIdsRepoMethodSignature entity}}};
+{{/if}}
+}

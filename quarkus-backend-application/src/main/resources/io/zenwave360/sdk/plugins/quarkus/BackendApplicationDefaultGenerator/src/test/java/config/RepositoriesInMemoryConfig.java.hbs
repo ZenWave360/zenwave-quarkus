@@ -1,0 +1,17 @@
+package {{layout.moduleConfigPackage}};
+
+import {{layout.outboundRepositoryPackage}}.*;
+import {{layout.infrastructureRepositoryPackage}}.inmemory.*;
+
+public class RepositoriesInMemoryConfig {
+
+{{assign "aggregates" (findAggregates entities)}}
+{{~#each aggregates as |entity|}}
+    protected final {{entity.className}}RepositoryInMemory {{entity.instanceName}}Repository = new {{entity.className}}RepositoryInMemory();
+
+    public {{entity.className}}RepositoryInMemory {{entity.instanceName}}Repository() {
+        return {{entity.instanceName}}Repository;
+    }
+{{~/each}}
+
+}

@@ -18,45 +18,56 @@ public class BackendApplicationQuarkusHelpers {
     }
 
     public String javaType(Map field, Options options) {
-        return ZDLJavaSignatureUtils.javaType(field).replace("byte[]", "ByteArray");
+        return ZDLJavaSignatureUtils.javaType(field);
     }
 
     public String naturalIdsRepoMethodSignature(Map entity, Options options) {
-        return ZDLJavaSignatureUtils.naturalIdsKotlinRepoMethodSignature(entity);
+        return ZDLJavaSignatureUtils.naturalIdsRepoMethodSignature(entity);
     }
 
     public String findById(Map method, Options options) {
         var zdl = options.get("zdl");
         var hasNaturalId = JSONPath.get(method, "$.naturalId", false);
-        if(hasNaturalId) {
+        if (hasNaturalId) {
             var entity = (Map) JSONPath.get(zdl, "$.allEntitiesAndEnums." + method.get("entity"));
             return ZDLJavaSignatureUtils.naturalIdsRepoMethodCallSignature(entity);
         }
         return "findById(id)";
     }
 
+    /**
+     * Finder call that yields the entity or null. Natural-id finders return {@code Optional},
+     * so those calls are unwrapped with {@code orElse(null)}.
+     */
+    public String entityOrNull(Map method, Options options) {
+        var call = findById(method, options);
+        if (JSONPath.get(method, "$.naturalId", false)) {
+            return call + ".orElse(null)";
+        }
+        return call;
+    }
+
+    /** Java expression of the id values, for concatenation after a message string. */
     public String idForStringInterpolation(Map method, Options options) {
         var zdl = options.get("zdl");
         var hasNaturalId = JSONPath.get(method, "$.naturalId", false);
-        if(hasNaturalId) {
+        if (hasNaturalId) {
             var entity = (Map) JSONPath.get(zdl, "$.allEntitiesAndEnums." + method.get("entity"));
             var params = ZDLJavaSignatureUtils.naturalIdsRepoMethodCallSignature(entity)
                     .replaceAll("findBy[^(]*\\(([^)]*)\\)", "$1");
             return Arrays.stream(params.split(", "))
-                    .map(param -> param + "=$" + param)
-                    .collect(Collectors.joining(", "));
+                    .collect(Collectors.joining(" + \", \" + "));
         }
-        return "$id";
+        return "id";
     }
-
 
     /** Accepts both {@code {{methodParametersSignature "artifact.type" method}}} and the legacy {@code {{methodParametersSignature method}}}. */
     public String methodParametersSignature(Object artifactTypeOrMethod, Options options) {
         var zdl = (Map) options.get("zdl");
         var artifactType = artifactTypeOrMethod instanceof String type ? type : null;
         var method = (Map<String, Object>) (artifactType != null ? options.param(0) : artifactTypeOrMethod);
-        return ZDLJavaSignatureUtils.kotlinMethodParametersSignature(artifactType, generator.getIdJavaType(), method, zdl)
-                .replace("pageable: Pageable", "page: Int, size: Int");
+        return ZDLJavaSignatureUtils.methodParametersSignature(artifactType, generator.getIdJavaType(), method, zdl)
+                .replace("Pageable pageable", "int page, int size");
     }
 
     public String methodParametersCallSignature(Map<String, Object> method, Options options) {
@@ -80,16 +91,12 @@ public class BackendApplicationQuarkusHelpers {
     }
 
     public String nullableMethodParametersSignature(Object artifactTypeOrMethod, Options options) {
-        var zdl = (Map) options.get("zdl");
-        var artifactType = artifactTypeOrMethod instanceof String type ? type : null;
-        var method = (Map<String, Object>) (artifactType != null ? options.param(0) : artifactTypeOrMethod);
-        return ZDLJavaSignatureUtils.kotlinNullableMethodParametersSignature(artifactType, generator.getIdJavaType(), method, zdl)
-                .replace("pageable: Pageable?", "page: Int, size: Int");
+        return methodParametersSignature(artifactTypeOrMethod, options);
     }
 
     public String mapperInputSignature(String inputType, Options options) {
         var zdl = (Map) options.get("zdl");
-        return ZDLJavaSignatureUtils.kotlinMapperInputSignature(inputType, zdl);
+        return ZDLJavaSignatureUtils.mapperInputSignature(inputType, zdl);
     }
 
     public String mapperInputAnnotations(String inputType, Options options) {
@@ -104,16 +111,15 @@ public class BackendApplicationQuarkusHelpers {
         var artifactType = artifactTypeOrMethod instanceof String type ? type : null;
         var method = (Map<String, Object>) (artifactType != null ? options.param(0) : artifactTypeOrMethod);
         return ZDLJavaSignatureUtils.methodReturnType(artifactType, method)
-                .replace("void", "Unit")
-                .replaceAll("Optional<(.+)>", "$1?")
-                .replaceAll("Page<([^>]+)>", "List<$1>");
+                .replaceAll("Page<([^>]+)>", "List<$1>")
+                .replaceAll("\\bOptional<(.+)>", "$1");
     }
 
     public String fieldType(Map field, Options options) {
         String prefix = (String) options.hash.getOrDefault("prefix", "");
         String suffix = (String) options.hash.getOrDefault("suffix", "");
-        return fixKotlinCollectionTypes(ZDLJavaSignatureUtils.fieldType(field, prefix, suffix));
-    };
+        return ZDLJavaSignatureUtils.fieldType(field, prefix, suffix);
+    }
 
     public boolean isRequired(Map field, Options options) {
         var isRequired = JSONPath.get(field, "validations.required") != null;
@@ -124,44 +130,32 @@ public class BackendApplicationQuarkusHelpers {
     public String relationshipFieldType(Map field, Options options) {
         String prefix = (String) options.hash.getOrDefault("prefix", "");
         String suffix = (String) options.hash.getOrDefault("suffix", "");
-        String nullable = !JSONPath.get(field, "isCollection", false) ? "?" : "";
-        return ZDLJavaSignatureUtils.relationshipFieldType(field, prefix, suffix) + nullable;
-    };
+        return ZDLJavaSignatureUtils.relationshipFieldType(field, prefix, suffix);
+    }
 
     public String relationshipFieldTypeInitializer(Map field, Options options) {
-        var typeInitializer = ZDLJavaSignatureUtils.relationshipFieldTypeInitializer(field);
-        if(typeInitializer.trim().isEmpty()) {
-            return " = null";
-        }
-        return fixKotlinTypeInitializers(typeInitializer);
-    };
+        return ZDLJavaSignatureUtils.relationshipFieldTypeInitializer(field);
+    }
 
     public String fieldTypeInitializer(Map field, Options options) {
-        var typeInitializer = fixKotlinTypeInitializers(ZDLJavaSignatureUtils.fieldTypeInitializer(field));
-        if(typeInitializer.trim().isEmpty()) {
-            return " = null";
-        }
-        return typeInitializer;
-    };
+        return ZDLJavaSignatureUtils.fieldTypeInitializer(field);
+    }
 
     public String idFieldInitialization(Map method, Options options) {
         var zdl = options.get("zdl");
         var hasNaturalId = JSONPath.get(method, "$.naturalId", false);
-        if(hasNaturalId) {
+        if (hasNaturalId) {
             var entity = (Map) JSONPath.get(zdl, "$.allEntitiesAndEnums." + method.get("entity"));
             List<Map> fields = ZDLFindUtils.naturalIdFields(entity);
-            return fields.stream().map(field -> String.format("val %s = %s;", field.get("name"), ZDLJavaSignatureUtils.populateField(field)))
+            return fields.stream()
+                    .map(field -> String.format("%s %s = %s;", field.get("type"), field.get("name"), ZDLJavaSignatureUtils.populateField(field)))
                     .collect(Collectors.joining("\n"));
         }
-        return "val id: " + generator.getIdJavaType() + " = " + idInitialization(generator.getIdJavaType());
+        return generator.getIdJavaType() + " id = " + idInitialization(generator.getIdJavaType()) + ";";
     }
 
     public String populateField(Map field, Options options) {
-        var populate = ZDLJavaSignatureUtils.populateField(field).replace("new ", "");
-        if("Integer".equals(field.get("type"))) {
-            populate = populate.replace("0", "0 as Integer");
-        }
-        return populate;
+        return ZDLJavaSignatureUtils.populateField(field);
     }
 
     public String transitionNaturalIdExpression(Map entity, Options options) {
@@ -173,8 +167,15 @@ public class BackendApplicationQuarkusHelpers {
             return "null";
         }
         return fields.stream()
-                .map(field -> "\"" + field.get("name") + "=\" + entity." + field.get("name"))
+                .map(field -> "\"" + field.get("name") + "=\" + entity.get" + capitalize((String) field.get("name")) + "()")
                 .collect(Collectors.joining(" + \", \" + "));
+    }
+
+    private static String capitalize(String name) {
+        if (name == null || name.isEmpty()) {
+            return "";
+        }
+        return Character.toUpperCase(name.charAt(0)) + name.substring(1);
     }
 
     private String idInitialization(String idJavaType) {
@@ -184,20 +185,5 @@ public class BackendApplicationQuarkusHelpers {
             case "String" -> "\"1\"";
             default -> "";
         };
-    }
-
-    private String fixKotlinTypeInitializers(String type) {
-        return type
-                .replaceAll("new HashSet<>\\(\\)", "mutableSetOf()")
-                .replaceAll("new ArrayList<>\\(\\)", "mutableListOf()")
-                .replaceAll("new HashMap<>\\(\\)", "mutableMapOf()");
-    }
-
-    private String fixKotlinCollectionTypes(String type) {
-        return type
-                .replaceAll("byte\\[]", "ByteArray")
-                .replaceAll("Set<", "MutableSet<")
-                .replaceAll("List<", "MutableList<")
-                .replaceAll("Map<", "MutableMap<");
     }
 }

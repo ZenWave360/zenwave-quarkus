@@ -1,0 +1,52 @@
+package {{layout.adaptersWebPackage}};
+
+import {{openApiModelPackage}}.*;
+import {{layout.adaptersWebMappersPackage}}.*;
+import {{layout.moduleConfigPackage}}.ServicesInMemoryConfig;
+
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.mapstruct.factory.Mappers;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import java.math.*;
+import java.time.*;
+import java.util.*;
+
+/**
+ * Test resource for {{serviceName}}ApiController.
+ */
+public class {{serviceName}}ApiControllerTest {
+
+    private final Logger log = LoggerFactory.getLogger(getClass());
+
+    private final ServicesInMemoryConfig context = new ServicesInMemoryConfig();
+
+    private final {{serviceName}}ApiController controller = new {{serviceName}}ApiController(
+        {{#joinWithTemplate entitiesServices delimiter=", "}}context.{{asInstanceName this}}(){{/joinWithTemplate}},
+        Mappers.getMapper({{serviceName}}DTOsMapper.class)
+    );
+
+    @BeforeEach
+    void setUp() {
+        context.reloadTestData();
+    }
+
+{{#each serviceOperations}}
+    @Test
+    void {{operationId}}Test() {
+        {{{asMethodParametersInitializer operation}}}
+        var response = controller.{{operationId}}({{{asMethodParameterValues operation}}});
+        {{~#if returnTypeIsOptional}}
+        Assertions.assertNotNull(response);
+        {{~else if (returnsResponse this)}}
+        Assertions.assertEquals({{statusCode}}, response.getStatus());
+        {{~else}}
+        Assertions.assertNotNull(response);
+        {{~/if}}
+    }
+{{/each}}
+
+}

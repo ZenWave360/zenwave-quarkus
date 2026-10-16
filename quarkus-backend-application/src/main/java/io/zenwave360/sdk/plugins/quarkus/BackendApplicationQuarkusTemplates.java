@@ -18,7 +18,7 @@ import java.util.Map;
 import java.util.function.Function;
 
 import static io.zenwave360.sdk.templating.OutputFormatType.JSON;
-import static io.zenwave360.sdk.templating.OutputFormatType.KOTLIN;
+import static io.zenwave360.sdk.templating.OutputFormatType.JAVA;
 import static io.zenwave360.sdk.templating.OutputFormatType.SQL;
 import static io.zenwave360.sdk.zdl.utils.ZDLFindUtils.is;
 
@@ -27,7 +27,8 @@ import static io.zenwave360.sdk.zdl.utils.ZDLFindUtils.is;
  *
  * <p>Registrations follow
  * {@code ../zenwave-sdk/plugins/customizations/kotlin-backend-application}
- * ({@code BackendApplicationKotlinTemplates}). MongoDB, reactive, and Modulith templates are not registered.
+ * ({@code BackendApplicationKotlinTemplates}). Generated sources are Java.
+ * MongoDB, reactive, and Modulith templates are not registered.
  */
 public class BackendApplicationQuarkusTemplates extends ProjectTemplates {
 
@@ -126,99 +127,99 @@ public class BackendApplicationQuarkusTemplates extends ProjectTemplates {
 
         var layoutNames = new ProjectLayout();
 
-        this.addTemplate(this.aggregateTemplates, "src/main/kotlin", "core/domain/common/Aggregate.kt",
-                layoutNames.entitiesPackage, "{{aggregate.name}}.kt", KOTLIN, null, true);
-        this.addTemplate(this.aggregateTemplates, "src/main/kotlin", "core/domain/common/AggregateTransitions.kt",
-                layoutNames.entitiesPackage, "{{aggregateTransitionsClassName aggregate}}.kt", KOTLIN, skipAggregateTransitions, true);
-        this.addTemplate(this.domainEventsTemplates, "src/main/kotlin", "core/domain/common/DomainEvent.kt",
-                layoutNames.domainEventsPackage, "{{event.name}}.kt", KOTLIN, null, true);
+        this.addTemplate(this.aggregateTemplates, "src/main/java", "core/domain/common/Aggregate.java",
+                layoutNames.entitiesPackage, "{{aggregate.name}}.java", JAVA, null, true);
+        this.addTemplate(this.aggregateTemplates, "src/main/java", "core/domain/common/AggregateTransitions.java",
+                layoutNames.entitiesPackage, "{{aggregateTransitionsClassName aggregate}}.java", JAVA, skipAggregateTransitions, true);
+        this.addTemplate(this.domainEventsTemplates, "src/main/java", "core/domain/common/DomainEvent.java",
+                layoutNames.domainEventsPackage, "{{event.name}}.java", JAVA, null, true);
 
-        this.addTemplate(this.entityTemplates, "src/main/kotlin", "core/domain/{{persistence}}/Entity.kt",
-                layoutNames.entitiesPackage, "{{entity.name}}.kt", KOTLIN, skipEntity, false);
-        this.addTemplate(this.entityTemplates, "src/main/kotlin", "core/domain/common/EntityTransitions.kt",
-                layoutNames.entitiesPackage, "{{entityServiceTransitionsClassName entity}}.kt", KOTLIN, skipEntityServiceTransitions, true);
-        this.addTemplate(this.entityTemplates, "src/main/kotlin", "core/outbound/{{persistence}}/{{style}}/EntityRepository.kt",
-                layoutNames.outboundRepositoryPackage, "{{entity.className}}Repository.kt", KOTLIN, skipEntityRepository, true);
-        this.addTemplate(this.entityTemplates, "src/main/kotlin", "infrastructure/{{persistence}}/{{style}}/EntityRepositoryImpl.kt",
-                layoutNames.infrastructureRepositoryPackage, "{{entity.className}}RepositoryImpl.kt", KOTLIN, skipEntityRepository, true);
-        this.addTemplate(this.entityTemplates, "src/test/kotlin", "infrastructure/{{persistence}}/{{style}}/BaseRepositoryIntegrationTest.kt",
-                layoutNames.infrastructureRepositoryCommonPackage, "BaseRepositoryIntegrationTest.kt", KOTLIN, skipEntityRepository, true);
-        this.addTemplate(this.entityTemplates, "src/test/kotlin", "infrastructure/{{persistence}}/{{style}}/EntityRepositoryIntegrationTest.kt",
-                layoutNames.infrastructureRepositoryPackage, "{{entity.className}}RepositoryIntegrationTest.kt", KOTLIN, skipEntityRepository, true);
-        this.addTemplate(this.entityTemplates, "src/test/kotlin", "infrastructure/{{persistence}}/{{style}}/inmemory/InMemory{{capitalizeFirst persistence}}Repository.kt",
-                layoutNames.infrastructureRepositoryPackage, "inmemory/InMemory{{capitalizeFirst persistence}}Repository.kt", KOTLIN, skipEntityRepository, true);
-        this.addTemplate(this.entityTemplates, "src/test/kotlin", "infrastructure/{{persistence}}/{{style}}/inmemory/EntityRepositoryInMemory.kt",
-                layoutNames.infrastructureRepositoryPackage, "inmemory/{{entity.className}}RepositoryInMemory.kt", KOTLIN, skipEntityRepository, true);
+        this.addTemplate(this.entityTemplates, "src/main/java", "core/domain/{{persistence}}/Entity.java",
+                layoutNames.entitiesPackage, "{{entity.name}}.java", JAVA, skipEntity, false);
+        this.addTemplate(this.entityTemplates, "src/main/java", "core/domain/common/EntityTransitions.java",
+                layoutNames.entitiesPackage, "{{entityServiceTransitionsClassName entity}}.java", JAVA, skipEntityServiceTransitions, true);
+        this.addTemplate(this.entityTemplates, "src/main/java", "core/outbound/{{persistence}}/{{style}}/EntityRepository.java",
+                layoutNames.outboundRepositoryPackage, "{{entity.className}}Repository.java", JAVA, skipEntityRepository, true);
+        this.addTemplate(this.entityTemplates, "src/main/java", "infrastructure/{{persistence}}/{{style}}/EntityRepositoryImpl.java",
+                layoutNames.infrastructureRepositoryPackage, "{{entity.className}}RepositoryImpl.java", JAVA, skipEntityRepository, true);
+        this.addTemplate(this.entityTemplates, "src/test/java", "infrastructure/{{persistence}}/{{style}}/BaseRepositoryIntegrationTest.java",
+                layoutNames.infrastructureRepositoryCommonPackage, "BaseRepositoryIntegrationTest.java", JAVA, skipEntityRepository, true);
+        this.addTemplate(this.entityTemplates, "src/test/java", "infrastructure/{{persistence}}/{{style}}/EntityRepositoryIntegrationTest.java",
+                layoutNames.infrastructureRepositoryPackage, "{{entity.className}}RepositoryIntegrationTest.java", JAVA, skipEntityRepository, true);
+        this.addTemplate(this.entityTemplates, "src/test/java", "infrastructure/{{persistence}}/{{style}}/inmemory/InMemory{{capitalizeFirst persistence}}Repository.java",
+                layoutNames.infrastructureRepositoryPackage, "inmemory/InMemory{{capitalizeFirst persistence}}Repository.java", JAVA, skipEntityRepository, true);
+        this.addTemplate(this.entityTemplates, "src/test/java", "infrastructure/{{persistence}}/{{style}}/inmemory/EntityRepositoryInMemory.java",
+                layoutNames.infrastructureRepositoryPackage, "inmemory/{{entity.className}}RepositoryInMemory.java", JAVA, skipEntityRepository, true);
 
         this.addTemplate(this.entityTemplates, "src/test/resources", "data/{{persistence}}/entity/1.json",
                 "", "data/{{persistence}}/{{entity.name}}/1.json", JSON, skipNonAggregateTestData, true);
 
-        this.addTemplate(this.enumTemplates, "src/main/kotlin", "core/domain/common/DomainEnum.kt",
-                layoutNames.entitiesPackage, "{{enum.name}}.kt", KOTLIN, null, false);
-        this.addTemplate(this.inputEnumTemplates, "src/main/kotlin", "core/domain/common/InputEnum.kt",
-                layoutNames.inboundDtosPackage, "{{enum.name}}.kt", KOTLIN, null, false);
-        this.addTemplate(this.eventEnumTemplates, "src/main/kotlin", "core/domain/common/EventEnum.kt",
-                layoutNames.domainEventsPackage, "{{enum.name}}.kt", KOTLIN, skipInput, false);
+        this.addTemplate(this.enumTemplates, "src/main/java", "core/domain/common/DomainEnum.java",
+                layoutNames.entitiesPackage, "{{enum.name}}.java", JAVA, null, false);
+        this.addTemplate(this.inputEnumTemplates, "src/main/java", "core/domain/common/InputEnum.java",
+                layoutNames.inboundDtosPackage, "{{enum.name}}.java", JAVA, null, false);
+        this.addTemplate(this.eventEnumTemplates, "src/main/java", "core/domain/common/EventEnum.java",
+                layoutNames.domainEventsPackage, "{{enum.name}}.java", JAVA, skipInput, false);
 
-        this.addTemplate(this.inputTemplates, "src/main/kotlin", "core/inbound/dtos/InputOrOutput.kt",
-                layoutNames.inboundDtosPackage, "{{entity.className}}.kt", KOTLIN, skipInput, false);
-        this.addTemplate(this.outputTemplates, "src/main/kotlin", "core/inbound/dtos/InputOrOutput.kt",
-                layoutNames.inboundDtosPackage, "{{entity.className}}.kt", KOTLIN, null, false);
+        this.addTemplate(this.inputTemplates, "src/main/java", "core/inbound/dtos/InputOrOutput.java",
+                layoutNames.inboundDtosPackage, "{{entity.className}}.java", JAVA, skipInput, false);
+        this.addTemplate(this.outputTemplates, "src/main/java", "core/inbound/dtos/InputOrOutput.java",
+                layoutNames.inboundDtosPackage, "{{entity.className}}.java", JAVA, null, false);
 
-        this.addTemplate(this.serviceTemplates, "src/main/kotlin", "core/inbound/Service.kt",
-                layoutNames.inboundPackage, "{{service.name}}.kt", KOTLIN, null, false);
-        this.addTemplate(this.serviceTemplates, "src/main/kotlin", "core/implementation/{{style}}/ServiceImpl.kt",
-                layoutNames.coreImplementationPackage, "{{service.name}}Impl.kt", KOTLIN, null, true);
-        this.addTemplate(this.listenersByApiTemplates, "src/main/kotlin", "adapters/events/EventListeners.kt",
-                layoutNames.adaptersEventsPackage, "{{listenerGroup.className}}.kt", KOTLIN, null, true);
-        this.addTemplate(this.listenersByApiTemplates, "src/main/kotlin", "adapters/events/EventListenersMapper.kt",
-                layoutNames.adaptersEventsMappersPackage, "{{listenerGroup.className}}Mapper.kt", KOTLIN, skipListenerMappers, true);
+        this.addTemplate(this.serviceTemplates, "src/main/java", "core/inbound/Service.java",
+                layoutNames.inboundPackage, "{{service.name}}.java", JAVA, null, false);
+        this.addTemplate(this.serviceTemplates, "src/main/java", "core/implementation/{{style}}/ServiceImpl.java",
+                layoutNames.coreImplementationPackage, "{{service.name}}Impl.java", JAVA, null, true);
+        this.addTemplate(this.listenersByApiTemplates, "src/main/java", "adapters/events/EventListeners.java",
+                layoutNames.adaptersEventsPackage, "{{listenerGroup.className}}.java", JAVA, null, true);
+        this.addTemplate(this.listenersByApiTemplates, "src/main/java", "adapters/events/EventListenersMapper.java",
+                layoutNames.adaptersEventsMappersPackage, "{{listenerGroup.className}}Mapper.java", JAVA, skipListenerMappers, true);
         this.asyncApiAdapterByApiTemplates.add(new TemplateInput(
-                joinPath(getTemplatesFolder(), "src/main/kotlin", "adapters/events/asyncapi/EventsMapper.kt"),
-                "{{asyncapiAdaptersModulePrefix}}src/main/kotlin/" + layoutNames.adaptersEventsPackage + "/EventsMapper.kt",
-                KOTLIN).withSkipOverwrite(true));
+                joinPath(getTemplatesFolder(), "src/main/java", "adapters/events/asyncapi/EventsMapper.java"),
+                "{{asyncapiAdaptersModulePrefix}}src/main/java/" + layoutNames.adaptersEventsPackage + "/EventsMapper.java",
+                JAVA).withSkipOverwrite(true));
         this.asyncApiAdapterByChannelTemplates.add(new TemplateInput(
-                joinPath(getTemplatesFolder(), "src/main/kotlin", "adapters/events/asyncapi/imperative/ConsumerService.kt"),
-                "{{asyncapiAdaptersModulePrefix}}src/main/kotlin/" + layoutNames.adaptersEventsPackage + "/{{consumerServiceName}}.kt",
-                KOTLIN).withSkipOverwrite(true));
+                joinPath(getTemplatesFolder(), "src/main/java", "adapters/events/asyncapi/imperative/ConsumerService.java"),
+                "{{asyncapiAdaptersModulePrefix}}src/main/java/" + layoutNames.adaptersEventsPackage + "/{{consumerServiceName}}.java",
+                JAVA).withSkipOverwrite(true));
 
-        this.addTemplate(this.singleTemplates, "src/main/kotlin", "core/implementation/mappers/BaseMapper.kt",
-                layoutNames.coreImplementationMappersCommonPackage, "BaseMapper.kt", KOTLIN, null, true);
-        this.addTemplate(this.serviceTemplates, "src/main/kotlin", "core/implementation/mappers/ServiceMapper.kt",
-                layoutNames.coreImplementationMappersPackage, "{{service.name}}Mapper.kt", KOTLIN, null, true);
-        this.addTemplate(this.serviceTemplates, "src/test/kotlin", "core/implementation/{{persistence}}/{{style}}/ServiceTest.kt",
-                layoutNames.coreImplementationPackage, "{{service.name}}Test.kt", KOTLIN, null, true);
+        this.addTemplate(this.singleTemplates, "src/main/java", "core/implementation/mappers/BaseMapper.java",
+                layoutNames.coreImplementationMappersCommonPackage, "BaseMapper.java", JAVA, null, true);
+        this.addTemplate(this.serviceTemplates, "src/main/java", "core/implementation/mappers/ServiceMapper.java",
+                layoutNames.coreImplementationMappersPackage, "{{service.name}}Mapper.java", JAVA, null, true);
+        this.addTemplate(this.serviceTemplates, "src/test/java", "core/implementation/{{persistence}}/{{style}}/ServiceTest.java",
+                layoutNames.coreImplementationPackage, "{{service.name}}Test.java", JAVA, null, true);
 
-        this.addTemplate(this.allServicesTemplates, "src/main/kotlin", "core/implementation/mappers/EventsMapper.kt",
-                layoutNames.coreImplementationMappersPackage, "EventsMapper.kt", KOTLIN, skipEvents, true);
-        this.addTemplate(this.allServicesTemplates, "src/test/kotlin", "config/RepositoriesInMemoryConfig.kt",
-                layoutNames.moduleConfigPackage, "RepositoriesInMemoryConfig.kt", KOTLIN, null, true);
-        this.addTemplate(this.allServicesTemplates, "src/test/kotlin", "config/ServicesInMemoryConfig.kt",
-                layoutNames.moduleConfigPackage, "ServicesInMemoryConfig.kt", KOTLIN, null, true);
+        this.addTemplate(this.allServicesTemplates, "src/main/java", "core/implementation/mappers/EventsMapper.java",
+                layoutNames.coreImplementationMappersPackage, "EventsMapper.java", JAVA, skipEvents, true);
+        this.addTemplate(this.allServicesTemplates, "src/test/java", "config/RepositoriesInMemoryConfig.java",
+                layoutNames.moduleConfigPackage, "RepositoriesInMemoryConfig.java", JAVA, null, true);
+        this.addTemplate(this.allServicesTemplates, "src/test/java", "config/ServicesInMemoryConfig.java",
+                layoutNames.moduleConfigPackage, "ServicesInMemoryConfig.java", JAVA, null, true);
 
-        this.addTemplate(this.allDomainEventsTemplates, "src/main/kotlin", "core/outbound/events/EventPublisher.kt",
-                layoutNames.outboundEventsPackage, "EventPublisher.kt", KOTLIN, skipEventsBus, false);
-        this.addTemplate(this.allDomainEventsTemplates, "src/main/kotlin", "infrastructure/events/DefaultEventPublisher.kt",
-                layoutNames.infrastructureEventsPackage, "DefaultEventPublisher.kt", KOTLIN, skipEventsBus, false);
-        this.addTemplate(this.allDomainEventsTemplates, "src/test/kotlin", "infrastructure/events/InMemoryEventPublisher.kt",
-                layoutNames.infrastructureEventsPackage, "InMemoryEventPublisher.kt", KOTLIN, skipEventsBus, false);
+        this.addTemplate(this.allDomainEventsTemplates, "src/main/java", "core/outbound/events/EventPublisher.java",
+                layoutNames.outboundEventsPackage, "EventPublisher.java", JAVA, skipEventsBus, false);
+        this.addTemplate(this.allDomainEventsTemplates, "src/main/java", "infrastructure/events/DefaultEventPublisher.java",
+                layoutNames.infrastructureEventsPackage, "DefaultEventPublisher.java", JAVA, skipEventsBus, false);
+        this.addTemplate(this.allDomainEventsTemplates, "src/test/java", "infrastructure/events/InMemoryEventPublisher.java",
+                layoutNames.infrastructureEventsPackage, "InMemoryEventPublisher.java", JAVA, skipEventsBus, false);
 
-        this.addTemplate(this.singleTemplates, "src/test/kotlin", "config/TestDataLoader-{{persistence}}.kt",
-                layoutNames.configPackage, "TestDataLoader.kt", KOTLIN, null, true);
-        this.addTemplate(this.singleTemplates, "src/test/kotlin", "config/DockerComposeInitializer-{{persistence}}.kt",
-                layoutNames.configPackage, "DockerComposeInitializer.kt", KOTLIN, null, true);
+        this.addTemplate(this.singleTemplates, "src/test/java", "config/TestDataLoader-{{persistence}}.java",
+                layoutNames.configPackage, "TestDataLoader.java", JAVA, null, true);
+        this.addTemplate(this.singleTemplates, "src/test/java", "config/DockerComposeInitializer-{{persistence}}.java",
+                layoutNames.configPackage, "DockerComposeInitializer.java", JAVA, null, true);
 
         this.addTemplate(this.singleTemplates, "src/test/resources", "data.sql",
                 null, "data.sql", SQL, skipDataSql, true);
 
-        this.addTemplate(this.singleTemplates, "src/main/kotlin", "core/inbound/dtos/package-info.kt",
-                layoutNames.inboundDtosPackage, "package-info.kt", KOTLIN, null, true);
-        this.addTemplate(this.singleTemplates, "src/main/kotlin", "infrastructure/package-info.kt",
-                layoutNames.infrastructurePackage, "package-info.kt", KOTLIN, skipInfrastructurePackageInfo, true);
+        this.addTemplate(this.singleTemplates, "src/main/java", "core/inbound/dtos/package-info.java",
+                layoutNames.inboundDtosPackage, "package-info.java", JAVA, null, true);
+        this.addTemplate(this.singleTemplates, "src/main/java", "infrastructure/package-info.java",
+                layoutNames.infrastructurePackage, "package-info.java", JAVA, skipInfrastructurePackageInfo, true);
 
-        this.addTemplate(this.singleTemplates, "src/test/kotlin", "ArchitectureTest.kt",
-                layoutNames.moduleBasePackage, "ArchitectureTest.kt", KOTLIN, skipCleanArchitecture, true);
-        this.addTemplate(this.singleTemplates, "src/test/kotlin", "JMoleculesArchitectureTest.kt",
-                layoutNames.moduleBasePackage, "JMoleculesArchitectureTest.kt", KOTLIN, skipJMolecules, true);
+        this.addTemplate(this.singleTemplates, "src/test/java", "ArchitectureTest.java",
+                layoutNames.moduleBasePackage, "ArchitectureTest.java", JAVA, skipCleanArchitecture, true);
+        this.addTemplate(this.singleTemplates, "src/test/java", "JMoleculesArchitectureTest.java",
+                layoutNames.moduleBasePackage, "JMoleculesArchitectureTest.java", JAVA, skipJMolecules, true);
     }
 }

@@ -1,23 +1,23 @@
-        var path = "{{operation.x--path}}"
+        var path = "{{operation.x--path}}";
         {{~#each (pathParams operation) as |param|}}
-        path = path.replace("{" + "{{param.name}}" + "}", {{asInstanceName param.name}}{{i}})
+        path = path.replace("{" + "{{param.name}}" + "}", {{asInstanceName param.name}}{{i}});
         {{~/each}}
         {{~#if (queryParams operation)}}
-        path += "?" + listOf(
+        path += "?" + String.join("&",
             {{~#each (queryParams operation) as |param|}}
             "{{param.name}}=" + {{asInstanceName param.name}}{{i}}{{#unless @last}},{{/unless}}
             {{~/each}}
-        ).joinToString("&")
+        );
         {{~/if}}
-        val httpResponse = httpClient.send(
-            HttpRequest.newBuilder()
+        var httpResponse = httpClient.send(
+            java.net.http.HttpRequest.newBuilder()
                 .uri(resourceUri(endpoint, path))
                 .header("Accept", "application/json")
                 {{~#if operation.x--request-dto}}
                 .header("Content-Type", "application/json")
                 {{~/if}}
-                .method("{{upper operation.x--httpVerb}}", {{#if operation.x--request-dto}}HttpRequest.BodyPublishers.ofString({{requestBodyVar}}){{else}}HttpRequest.BodyPublishers.noBody(){{/if}})
+                .method("{{upper operation.x--httpVerb}}", {{#if operation.x--request-dto}}java.net.http.HttpRequest.BodyPublishers.ofString({{requestBodyVar}}){{else}}java.net.http.HttpRequest.BodyPublishers.noBody(){{/if}})
                 .build(),
-            HttpResponse.BodyHandlers.ofString()
-        )
-        Assertions.assertEquals({{response.x--statusCode}}, httpResponse.statusCode())
+            java.net.http.HttpResponse.BodyHandlers.ofString()
+        );
+        Assertions.assertEquals({{response.x--statusCode}}, httpResponse.statusCode());

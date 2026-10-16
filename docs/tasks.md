@@ -24,7 +24,7 @@ Design: `docs/001-target-stack.md` and `docs/quarkus-customization.md`.
 - [x] Unit test that loads a ZDL from `test-resources` and runs `BackendApplicationDefaultPlugin` with `BackendApplicationQuarkusTemplates`.
 - [x] First backend slice from the target list: entity, repository port, `EntityManager` repository implementation, inbound service, service implementation.
 - [x] Remaining backend target files from the list, including MapStruct `componentModel = cdi` and the in-process CDI event templates.
-- [x] `OpenAPIControllersQuarkusTemplates` and a unit test that emits `{{serviceName}}ApiController.kt` from `openapi/openapi.yml`.
+- [x] `OpenAPIControllersQuarkusTemplates` and a unit test that emits `{{serviceName}}ApiController.java` from `openapi/openapi.yml`.
 - [x] `QuarkusHttpTestTemplates` and a unit test that emits one `@QuarkusTest` class using JDK `HttpClient`.
 
 ## asyncapi-quarkus

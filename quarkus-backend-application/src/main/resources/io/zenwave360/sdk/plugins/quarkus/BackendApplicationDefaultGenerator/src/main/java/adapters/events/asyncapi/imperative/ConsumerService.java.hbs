@@ -1,0 +1,55 @@
+package {{layout.adaptersEventsPackage}};
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import jakarta.enterprise.context.ApplicationScoped;
+import jakarta.inject.Inject;
+
+/**
+ * Developer-owned AsyncAPI adapter. This file is generated once.
+ */
+@ApplicationScoped
+{{annotate "adapter.asyncapi-consumer"}}
+public class {{consumerServiceName}} implements {{consumerServiceInterfaceType}} {
+
+{{#each serviceDependencies as |dependency|}}
+    private final {{dependency.serviceType}} {{dependency.serviceVariable}};
+{{/each}}
+{{#if hasGeneratedMappings}}
+    private final EventsMapper eventsMapper;
+{{/if}}
+
+    private final Logger log = LoggerFactory.getLogger(getClass());
+
+    @Inject
+    public {{consumerServiceName}}(
+{{#each serviceDependencies as |dependency|}}
+            {{dependency.serviceType}} {{dependency.serviceVariable}}{{#if @last}}{{#unless hasGeneratedMappings}}{{else}},{{/unless}}{{else}},{{/if}}
+{{/each}}
+{{#if hasGeneratedMappings}}
+            EventsMapper eventsMapper
+{{/if}}
+    ) {
+{{#each serviceDependencies as |dependency|}}
+        this.{{dependency.serviceVariable}} = {{dependency.serviceVariable}};
+{{/each}}
+{{#if hasGeneratedMappings}}
+        this.eventsMapper = eventsMapper;
+{{/if}}
+    }
+
+{{#each operations as |operation|}}
+{{#each operation.adapterMessages as |message|}}
+    @Override
+    public void {{message.x--adapterMethodName}}({{message.x--adapterJavaType}} payload, {{message.x--adapterHeadersType}} headers) {
+        log.debug("Received command request for {{message.x--adapterMethodName}}: {} with headers {}", payload, headers);
+    {{~#if operation.adapterPlan.generated}}
+        {{operation.adapterPlan.serviceVariable}}.{{operation.adapterPlan.serviceMethodName}}(eventsMapper.{{operation.adapterPlan.mapperMethodName}}(payload));
+    {{~else}}
+        // TODO CUSTOM_REQUIRED: {{operation.adapterPlan.reason}}.
+        throw new UnsupportedOperationException("Customize {{message.x--adapterMethodName}} for the current AsyncAPI contract");
+    {{~/if}}
+    }
+{{/each}}
+{{/each}}
+}

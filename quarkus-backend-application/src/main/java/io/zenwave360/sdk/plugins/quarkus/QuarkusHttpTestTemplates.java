@@ -8,14 +8,14 @@ import io.zenwave360.sdk.templating.TemplateInput;
 import java.util.ArrayList;
 import java.util.List;
 
-import static io.zenwave360.sdk.templating.OutputFormatType.KOTLIN;
+import static io.zenwave360.sdk.templating.OutputFormatType.JAVA;
 
 /**
  * Quarkus templates for {@code SpringWebTestClientPlugin}, selected with the {@code templates} option.
  *
  * <p>Same entry points as
  * {@code ../zenwave-sdk/plugins/customizations/kotlin-backend-application}
- * ({@code SpringWebTestClientKotlinTemplates}).
+ * ({@code SpringWebTestClientKotlinTemplates}). Generated sources are Java.
  */
 public class QuarkusHttpTestTemplates extends SpringWebTestClientTemplates {
 
@@ -36,45 +36,45 @@ public class QuarkusHttpTestTemplates extends SpringWebTestClientTemplates {
     @Override
     public TemplateInput partialTemplate() {
         return new TemplateInput()
-                .withTemplateLocation(joinPath(templatesFolder, "partials/Operation.kt"))
-                .withTargetFile(joinPath("src/test/kotlin", "{{asPackageFolder testsPackage}}/Operation.kt"))
-                .withMimeType(KOTLIN)
+                .withTemplateLocation(joinPath(templatesFolder, "partials/Operation.java"))
+                .withTargetFile(joinPath("src/test/java", "{{asPackageFolder testsPackage}}/Operation.java"))
+                .withMimeType(JAVA)
                 .withSkipOverwrite(false);
     }
 
     @Override
     public TemplateInput baseTestClassTemplate() {
         return new TemplateInput()
-                .withTemplateLocation(joinPath(templatesFolder, "BaseQuarkusHttpTest.kt"))
-                .withTargetFile(joinPath("src/test/kotlin", "{{asPackageFolder baseTestClassPackage}}/BaseQuarkusHttpTest.kt"))
-                .withMimeType(KOTLIN)
+                .withTemplateLocation(joinPath(templatesFolder, "BaseQuarkusHttpTest.java"))
+                .withTargetFile(joinPath("src/test/java", "{{asPackageFolder baseTestClassPackage}}/BaseQuarkusHttpTest.java"))
+                .withMimeType(JAVA)
                 .withSkipOverwrite(true);
     }
 
     @Override
     public TemplateInput businessFlowTestTemplate() {
         return new TemplateInput()
-                .withTemplateLocation(joinPath(templatesFolder, "BusinessFlowTest.kt"))
-                .withTargetFile(joinPath("src/test/kotlin", "{{asPackageFolder testsPackage}}/{{businessFlowTestName}}.kt"))
-                .withMimeType(KOTLIN)
+                .withTemplateLocation(joinPath(templatesFolder, "BusinessFlowTest.java"))
+                .withTargetFile(joinPath("src/test/java", "{{asPackageFolder testsPackage}}/{{businessFlowTestName}}.java"))
+                .withMimeType(JAVA)
                 .withSkipOverwrite(false);
     }
 
     @Override
     public TemplateInput serviceTestTemplate() {
         return new TemplateInput()
-                .withTemplateLocation(joinPath(templatesFolder, "ServiceIT.kt"))
-                .withTargetFile(joinPath("src/test/kotlin", "{{asPackageFolder testsPackage}}/{{serviceName}}{{testSuffix}}.kt"))
-                .withMimeType(KOTLIN)
+                .withTemplateLocation(joinPath(templatesFolder, "ServiceIT.java"))
+                .withTargetFile(joinPath("src/test/java", "{{asPackageFolder testsPackage}}/{{serviceName}}{{testSuffix}}.java"))
+                .withMimeType(JAVA)
                 .withSkipOverwrite(false);
     }
 
     @Override
     public TemplateInput operationTestTemplate() {
         return new TemplateInput()
-                .withTemplateLocation(joinPath(templatesFolder, "OperationIT.kt"))
-                .withTargetFile(joinPath("src/test/kotlin", "{{asPackageFolder testsPackage}}/{{serviceName}}/{{asJavaTypeName operationId}}{{testSuffix}}.kt"))
-                .withMimeType(KOTLIN)
+                .withTemplateLocation(joinPath(templatesFolder, "OperationIT.java"))
+                .withTargetFile(joinPath("src/test/java", "{{asPackageFolder testsPackage}}/{{serviceName}}/{{asJavaTypeName operationId}}{{testSuffix}}.java"))
+                .withMimeType(JAVA)
                 .withSkipOverwrite(false);
     }
 }

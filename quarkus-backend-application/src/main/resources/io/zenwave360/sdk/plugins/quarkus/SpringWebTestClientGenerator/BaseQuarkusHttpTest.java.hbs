@@ -1,0 +1,23 @@
+package {{baseTestClassPackage}};
+
+import io.quarkus.test.junit.QuarkusTest;
+import java.net.URI;
+import java.net.http.HttpClient;
+{{#if transactional}}
+import jakarta.transaction.Transactional;
+{{/if}}
+
+@QuarkusTest
+{{#if transactional}}
+@Transactional
+{{/if}}
+public abstract class BaseQuarkusHttpTest {
+
+    protected final HttpClient httpClient = HttpClient.newHttpClient();
+
+    protected URI resourceUri(URI endpoint, String path) {
+        var base = endpoint.toString().replaceAll("/$", "");
+        var suffix = path.startsWith("/") ? path : "/" + path;
+        return URI.create(base + suffix);
+    }
+}

@@ -1,0 +1,129 @@
+package {{layout.infrastructureRepositoryPackage}};
+
+import {{layout.infrastructureRepositoryCommonPackage}}.BaseRepositoryIntegrationTest;
+import {{layout.entitiesPackage}}.*;
+import {{layout.outboundRepositoryPackage}}.{{entity.className}}Repository;
+
+import java.util.HashSet;
+import java.time.*;
+import java.math.BigDecimal;
+
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.Test;
+import jakarta.inject.Inject;
+import jakarta.persistence.EntityManager;
+
+public class {{entity.className}}RepositoryIntegrationTest extends BaseRepositoryIntegrationTest {
+
+    @Inject
+    EntityManager entityManager;
+
+    @Inject
+    {{entity.className}}Repository {{entity.instanceName}}Repository;
+
+    @Test
+    void findAllTest() {
+        var results = {{entity.instanceName}}Repository.findAll();
+        Assertions.assertFalse(results.isEmpty());
+    }
+
+    @Test
+    void findByIdTest() {
+        var id = 1L;
+        var {{entity.instanceName}} = {{entity.instanceName}}Repository.findById(id);
+        if ({{entity.instanceName}} == null) {
+            throw new java.util.NoSuchElementException("{{entity.className}} not found with id: " + id);
+        }
+        Assertions.assertNotNull({{entity.instanceName}}.getId());
+        Assertions.assertNotNull({{entity.instanceName}}.getVersion());
+        {{~#if (or entity.options.auditing entity.options.extendsAuditing)}}
+        Assertions.assertNotNull({{entity.instanceName}}.getCreatedBy());
+        Assertions.assertNotNull({{entity.instanceName}}.getCreatedDate());
+        {{~/if}}
+    }
+
+    @Test
+    void saveTest() {
+        var {{entity.instanceName}} = new {{entity.className}}();
+        {{~#each entity.fields as |field|}}
+        {{entity.instanceName}}.set{{capitalize field.name}}({{{populateField field}}});
+        {{~/each}}
+
+{{#each entity.relationships as |relationship|}}
+{{~#if relationship.fieldName}}
+        // {{relationship.type}} {{relationship.fieldName}} owner: {{relationship.ownerSide}}
+    {{~#if (or relationship.ownerSide (and (endsWith relationship.type 'OneToOne') (not relationship.ownerSide) entity.options.aggregate) )}}
+        {{~#if (and relationship.ownerSide (endsWith relationship.type 'ToOne'))}}
+        var {{relationship.fieldName}}Id = 1L;
+        {{~/if}}
+        {{~#if (addRelationshipById relationship entity=entity)}}
+        {{entity.instanceName}}.set{{capitalize relationship.fieldName}}Id({{relationship.fieldName}}Id);
+        {{~else}}
+        var {{relationship.fieldName}} = new {{relationship.otherEntityName}}();
+        {{~assign 'otherEntity' (findEntity relationship.otherEntityName zdl)}}
+        {{~#each otherEntity.fields as |field|}}
+        {{relationship.fieldName}}.set{{capitalize field.name}}({{{populateField field}}});
+        {{~/each}}
+            {{~#if (endsWith relationship.type 'ToOne')}}
+        {{entity.instanceName}}.set{{capitalize relationship.fieldName}}({{relationship.fieldName}});
+            {{~else}}
+        {{entity.instanceName}}.set{{capitalize relationship.fieldName}}(new HashSet<>());
+        {{entity.instanceName}}.add{{capitalize relationship.fieldName}}({{relationship.fieldName}});
+            {{~/if}}
+        {{~/if}}
+    {{~/if}}
+{{/if~}}
+{{/each}}
+
+        var created = {{entity.instanceName}}Repository.save({{entity.instanceName}});
+
+        entityManager.flush();
+        entityManager.refresh(created);
+        Assertions.assertNotNull(created.getId());
+        Assertions.assertNotNull(created.getVersion());
+        {{~#if (or entity.options.auditing entity.options.extendsAuditing)}}
+        Assertions.assertNotNull(created.getCreatedBy());
+        Assertions.assertNotNull(created.getCreatedDate());
+        {{~/if}}
+
+{{#each entity.relationships as |relationship|}}
+{{~#if relationship.fieldName}}
+    {{~#if relationship.ownerSide}}
+        {{~#if (endsWith relationship.type 'OneToOne')}}
+        Assertions.assertNotNull({{entity.instanceName}}.get{{capitalize relationship.fieldName}}());
+        Assertions.assertNotNull({{entity.instanceName}}.get{{capitalize relationship.fieldName}}().getId());
+        {{~else if (endsWith relationship.type 'ToOne')}}
+        Assertions.assertEquals({{relationship.fieldName}}Id, {{entity.instanceName}}.get{{capitalize relationship.fieldName}}().getId());
+        {{~else}}
+        Assertions.assertTrue({{entity.instanceName}}.get{{capitalize relationship.fieldName}}().stream().allMatch(item -> item.getId() != null));
+        {{~/if}}
+    {{~/if}}
+{{~/if}}
+{{~/each}}
+    }
+
+    @Test
+    void updateTest() {
+        var id = 1L;
+        var {{entity.instanceName}} = {{entity.instanceName}}Repository.findById(id);
+        if ({{entity.instanceName}} == null) {
+            throw new java.util.NoSuchElementException("{{entity.className}} not found with id: " + id);
+        }
+        {{~#each entity.fields as |field|}}
+        {{entity.instanceName}}.set{{capitalize field.name}}({{{populateField field}}});
+        {{~/each}}
+
+        var updated = {{entity.instanceName}}Repository.save({{entity.instanceName}});
+        {{~#each entity.fields as |field|}}
+        Assertions.assertEquals({{{populateField field}}}, updated.get{{capitalize field.name}}());
+        {{~/each}}
+    }
+
+    @Test
+    void deleteTest() {
+        var id = 1L;
+        {{entity.instanceName}}Repository.deleteById(id);
+        var notFound = {{entity.instanceName}}Repository.findById(id);
+        Assertions.assertNull(notFound);
+    }
+}

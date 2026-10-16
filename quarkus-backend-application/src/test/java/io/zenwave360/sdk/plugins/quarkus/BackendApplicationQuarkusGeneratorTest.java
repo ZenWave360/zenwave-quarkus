@@ -47,12 +47,12 @@ class BackendApplicationQuarkusGeneratorTest {
 
         new MainGenerator().generate(plugin);
 
-        Path root = Path.of(targetFolder, "src/main/kotlin/io/example/orders");
-        String entity = Files.readString(root.resolve("core/domain/Customer.kt"));
-        String repository = Files.readString(root.resolve("core/outbound/jpa/CustomerRepository.kt"));
-        String repositoryImpl = Files.readString(root.resolve("infrastructure/jpa/CustomerRepositoryImpl.kt"));
-        String service = Files.readString(root.resolve("core/inbound/CustomerService.kt"));
-        String serviceImpl = Files.readString(root.resolve("core/application/CustomerServiceImpl.kt"));
+        Path root = Path.of(targetFolder, "src/main/java/io/example/orders");
+        String entity = Files.readString(root.resolve("core/domain/Customer.java"));
+        String repository = Files.readString(root.resolve("core/outbound/jpa/CustomerRepository.java"));
+        String repositoryImpl = Files.readString(root.resolve("infrastructure/jpa/CustomerRepositoryImpl.java"));
+        String service = Files.readString(root.resolve("core/inbound/CustomerService.java"));
+        String serviceImpl = Files.readString(root.resolve("core/application/CustomerServiceImpl.java"));
 
         assertTrue(entity.contains("@Entity"));
         assertTrue(entity.contains("jakarta.persistence"));
@@ -86,12 +86,12 @@ class BackendApplicationQuarkusGeneratorTest {
 
         new MainGenerator().generate(plugin);
 
-        Path root = Path.of(targetFolder, "src/main/kotlin/io/example/orders");
-        String serviceMapper = Files.readString(root.resolve("core/application/mappers/CustomerServiceMapper.kt"));
-        String eventsMapper = Files.readString(root.resolve("core/application/mappers/EventsMapper.kt"));
-        String baseMapper = Files.readString(root.resolve("core/application/mappers/BaseMapper.kt"));
-        String serviceImpl = Files.readString(root.resolve("core/application/CustomerServiceImpl.kt"));
-        String servicesConfig = Files.readString(Path.of(targetFolder, "src/test/kotlin/io/example/orders/config/ServicesInMemoryConfig.kt"));
+        Path root = Path.of(targetFolder, "src/main/java/io/example/orders");
+        String serviceMapper = Files.readString(root.resolve("core/application/mappers/CustomerServiceMapper.java"));
+        String eventsMapper = Files.readString(root.resolve("core/application/mappers/EventsMapper.java"));
+        String baseMapper = Files.readString(root.resolve("core/application/mappers/BaseMapper.java"));
+        String serviceImpl = Files.readString(root.resolve("core/application/CustomerServiceImpl.java"));
+        String servicesConfig = Files.readString(Path.of(targetFolder, "src/test/java/io/example/orders/config/ServicesInMemoryConfig.java"));
 
         assertTrue(serviceMapper.contains("componentModel = \"cdi\""));
         assertTrue(eventsMapper.contains("componentModel = \"cdi\""));
@@ -99,10 +99,10 @@ class BackendApplicationQuarkusGeneratorTest {
         assertFalse(serviceMapper.contains("INSTANCE"));
         assertTrue(serviceImpl.contains("customerServiceMapper"));
         assertTrue(serviceImpl.contains("eventsMapper"));
-        assertTrue(servicesConfig.contains("Mappers.getMapper(CustomerServiceMapper::class.java)"));
-        assertTrue(servicesConfig.contains("Mappers.getMapper(EventsMapper::class.java)"));
-        assertTrue(Files.exists(root.resolve("core/domain/AddressType.kt")));
-        assertTrue(Files.exists(root.resolve("core/inbound/dtos/CustomerInput.kt")));
+        assertTrue(servicesConfig.contains("Mappers.getMapper(CustomerServiceMapper.class)"));
+        assertTrue(servicesConfig.contains("Mappers.getMapper(EventsMapper.class)"));
+        assertTrue(Files.exists(root.resolve("core/domain/AddressType.java")));
+        assertTrue(Files.exists(root.resolve("core/inbound/dtos/CustomerInput.java")));
         assertFalse(serviceImpl.contains("org.springframework"));
         assertNoSpring(targetFolder);
 
@@ -120,17 +120,17 @@ class BackendApplicationQuarkusGeneratorTest {
 
         new MainGenerator().generate(eventsPlugin);
 
-        Path eventsRoot = Path.of(eventsFolder, "src/main/kotlin/io/example/orders");
-        String publisher = Files.readString(eventsRoot.resolve("infrastructure/events/DefaultEventPublisher.kt"));
-        String eventType = Files.readString(eventsRoot.resolve("core/domain/events/CustomerCreated.kt"));
+        Path eventsRoot = Path.of(eventsFolder, "src/main/java/io/example/orders");
+        String publisher = Files.readString(eventsRoot.resolve("infrastructure/events/DefaultEventPublisher.java"));
+        String eventType = Files.readString(eventsRoot.resolve("core/domain/events/CustomerCreated.java"));
         String inMemoryPublisher = Files.readString(Path.of(eventsFolder,
-                "src/test/kotlin/io/example/orders/infrastructure/events/InMemoryEventPublisher.kt"));
+                "src/test/java/io/example/orders/infrastructure/events/InMemoryEventPublisher.java"));
 
         assertTrue(eventType.contains("class CustomerCreated"));
         assertTrue(publisher.contains("jakarta.enterprise.event.Event"));
         assertTrue(publisher.contains(".fire("));
         assertTrue(publisher.contains("Event<CustomerCreated>"));
-        assertTrue(inMemoryPublisher.contains("override fun onCustomerCreated"));
+        assertTrue(inMemoryPublisher.contains("void onCustomerCreated"));
         assertFalse(publisher.contains("org.springframework"));
         assertNoSpring(eventsFolder);
     }
@@ -139,7 +139,7 @@ class BackendApplicationQuarkusGeneratorTest {
         try (Stream<Path> paths = Files.walk(Path.of(targetFolder))) {
             for (Path path : paths.toList()) {
                 String name = path.getFileName().toString();
-                if (!name.endsWith(".kt") && !name.endsWith(".sql") && !name.endsWith(".json")) {
+                if (!name.endsWith(".java") && !name.endsWith(".sql") && !name.endsWith(".json")) {
                     continue;
                 }
                 String text = Files.readString(path);

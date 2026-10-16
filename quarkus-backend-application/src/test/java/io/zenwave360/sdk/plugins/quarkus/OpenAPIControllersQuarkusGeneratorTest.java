@@ -30,9 +30,9 @@ class OpenAPIControllersQuarkusGeneratorTest {
 
         new MainGenerator().generate(plugin);
 
-        Path root = Path.of(targetFolder, "src/main/kotlin/io/example/orders/adapters/web");
-        String controller = Files.readString(root.resolve("CustomerApiController.kt"));
-        String mapper = Files.readString(root.resolve("mappers/CustomerDTOsMapper.kt"));
+        Path root = Path.of(targetFolder, "src/main/java/io/example/orders/adapters/web");
+        String controller = Files.readString(root.resolve("CustomerApiController.java"));
+        String mapper = Files.readString(root.resolve("mappers/CustomerDTOsMapper.java"));
 
         assertTrue(controller.contains("@ApplicationScoped"));
         assertTrue(controller.contains("@Path"));
@@ -47,6 +47,6 @@ class OpenAPIControllersQuarkusGeneratorTest {
         assertTrue(mapper.contains("componentModel = \"cdi\""));
         assertFalse(mapper.contains("INSTANCE"));
         assertFalse(mapper.contains("Page<"));
-        assertTrue(Files.exists(Path.of(targetFolder, "src/test/kotlin/io/example/orders/adapters/web/CustomerApiControllerTest.kt")));
+        assertTrue(Files.exists(Path.of(targetFolder, "src/test/java/io/example/orders/adapters/web/CustomerApiControllerTest.java")));
     }
 }

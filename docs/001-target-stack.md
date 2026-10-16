@@ -2,7 +2,7 @@
 
 ## General purpose
 
-This repository is the base for ZenWave backend customizations. A customization mirrors the Kotlin customization:
+This repository is an example of a ZenWave backend customization that lives outside the upstream SDK. A customization copies the project shape of the Kotlin customization:
 
 - [`../zenwave-sdk/plugins/customizations/kotlin-backend-application`](../zenwave-sdk/plugins/customizations/kotlin-backend-application)
 - [ZenWave360/zenwave-sdk `plugins/customizations/kotlin-backend-application`](https://github.com/ZenWave360/zenwave-sdk/tree/main/plugins/customizations/kotlin-backend-application)
@@ -27,7 +27,7 @@ Future customizations copy this section and add their own target section.
 |---|---|
 | parent | Reactor `pom.xml`, dependency management, module list. |
 | `test-resources` | Shared models for every other module: ZDL, `openapi.yml`, and `asyncapi.yml`. |
-| `quarkus-backend-application` | Kotlin-shaped customization: backend, OpenAPI controllers, and HTTP tests. |
+| `quarkus-backend-application` | Java customization: backend, OpenAPI controllers, and HTTP tests. |
 | `asyncapi-quarkus` | SmallRye templates for `AsyncAPIGenerator`. The Kotlin customization has no equivalent. |
 | `e2e` | Checked-in Quarkus project. Same shape as [`../zenwave-sdk/e2e`](../zenwave-sdk/e2e). |
 
@@ -46,15 +46,14 @@ Customization modules and `e2e` depend on it. They do not keep their own copies 
 The generated application uses:
 
 - Quarkus, imperative.
-- Kotlin for the backend, the OpenAPI controllers, and the HTTP tests. The templates classes are `BackendApplicationQuarkusTemplates`, `OpenAPIControllersQuarkusTemplates`, and `QuarkusHttpTestTemplates`, selected on `BackendApplicationDefaultPlugin`, `OpenAPIControllersPlugin`, and `SpringWebTestClientPlugin`.
-- Java for the AsyncAPI producer and consumer, because `asyncapi-quarkus` replaces the Java templates in `SpringKafkaTemplates` and `SpringCloudStreamTemplates`.
+- Java for the backend, the OpenAPI controllers, the HTTP tests, and the AsyncAPI producer and consumer. The templates classes are `BackendApplicationQuarkusTemplates`, `OpenAPIControllersQuarkusTemplates`, and `QuarkusHttpTestTemplates`, selected on `BackendApplicationDefaultPlugin`, `OpenAPIControllersPlugin`, and `SpringWebTestClientPlugin`. `asyncapi-quarkus` replaces the producer and consumer implementations from `SpringKafkaTemplates` and `SpringCloudStreamTemplates`.
 - Maven.
 - CDI for wiring.
 - Jakarta REST (JAX-RS) for controllers.
 - Hibernate ORM with plain JPA repositories: a repository interface and an `@ApplicationScoped` implementation that uses `EntityManager`. Panache active record stays out of the domain.
 - `@Transactional` (`jakarta.transaction`) at the application boundary.
-- MapStruct for DTO and entity mapping, `componentModel = cdi`. The e2e scaffold pom wires the MapStruct annotation processor into the Kotlin compile.
-- CDI events (`Event` / `@Observes`) for in-process domain events, in the same template slots as the Kotlin `EventPublisher` and listener templates.
+- MapStruct for DTO and entity mapping, `componentModel = cdi`. The e2e scaffold pom wires the MapStruct annotation processor into the Java compile.
+- CDI events (`Event` / `@Observes`) for in-process domain events, in the same template slots as the Kotlin customization's `EventPublisher` and listener templates.
 - SmallRye Reactive Messaging for Kafka inside the AsyncAPI producer and consumer implementations. `Emitter`, `@Channel`, and `@Incoming` stay in those two classes.
 - Avro plus Schema Registry where the AsyncAPI model declares them, on that same adapter.
 
@@ -75,7 +74,7 @@ new AsyncAPIGeneratorPlugin()
 
 - No reactive types in business or application layers. No `Uni`, no `Multi`, no `Mono`, no `Flux`.
 - Business producer interfaces and application services do not import SmallRye. `Emitter`, `@Channel`, and `@Incoming` live only in the AsyncAPI producer and consumer implementations.
-- Listeners delegate to a plain Kotlin application service. The application service they call does not import the messaging framework.
+- Listeners delegate to a plain Java application service. The application service they call does not import the messaging framework.
 - Persistence is hidden behind a repository interface. The JPA implementation uses `EntityManager`.
 - Generated HTTP tests use Quarkus test infrastructure (`@QuarkusTest`, `@TestHTTPEndpoint`, `@TestHTTPResource`) plus JDK `HttpClient`. REST Assured is absent from the e2e scaffold.
 

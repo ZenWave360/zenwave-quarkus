@@ -1,0 +1,44 @@
+package {{layout.domainEventsPackage}};
+
+import java.io.Serializable;
+import java.math.*;
+import java.time.*;
+import java.util.*;
+import jakarta.validation.constraints.*;
+
+import {{layout.entitiesPackage}}.*;
+
+/**
+ * {{event.comment}}
+ */
+{{annotate "domain.event" event.javaEvent event}}
+public {{abstractClass event}} class {{event.className}} {{addExtends event}} implements Serializable {
+
+    @java.io.Serial
+    private static final long serialVersionUID = 1L;
+
+{{#each event.fields as |field|}}
+    {{{fieldValidationAnnotations field}}}
+    private {{{fieldType field}}} {{field.name}}{{#if field.isArray}} {{{fieldTypeInitializer field}}}{{/if}};
+{{/each}}
+
+{{#each event.fields as |field|}}
+    {{~#if field.isArray}}
+    public {{event.className}} add{{capitalize field.name}}({{javaType field}} {{field.name}}) {
+        this.{{field.name}}.add({{field.name}});
+        return this;
+    }
+    {{~/if}}
+{{/each}}
+
+{{#each event.fields as |field|}}
+    public {{{fieldType field}}} get{{capitalize field.name}}() {
+        return {{field.name}};
+    }
+
+    public {{event.className}} set{{capitalize field.name}}({{{fieldType field}}} {{field.name}}) {
+        this.{{field.name}} = {{field.name}};
+        return this;
+    }
+{{/each}}
+}

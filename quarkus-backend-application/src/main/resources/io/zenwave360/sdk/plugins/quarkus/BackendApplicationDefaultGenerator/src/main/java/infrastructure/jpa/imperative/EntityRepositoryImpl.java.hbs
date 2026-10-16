@@ -1,0 +1,74 @@
+package {{layout.infrastructureRepositoryPackage}};
+
+import {{layout.entitiesPackage}}.*;
+import {{layout.outboundRepositoryPackage}}.{{entity.className}}Repository;
+import jakarta.enterprise.context.ApplicationScoped;
+import jakarta.inject.Inject;
+import jakarta.persistence.EntityManager;
+
+import java.util.ArrayList;
+import java.util.List;
+
+/**
+ * EntityManager implementation of the {{entity.className}} repository port.
+ */
+@ApplicationScoped
+public class {{entity.className}}RepositoryImpl implements {{entity.className}}Repository {
+
+    private final EntityManager entityManager;
+
+    @Inject
+    public {{entity.className}}RepositoryImpl(EntityManager entityManager) {
+        this.entityManager = entityManager;
+    }
+
+    @Override
+    public {{entity.className}} save({{entity.className}} entity) {
+        if (entity.getId() == null) {
+            entityManager.persist(entity);
+            return entity;
+        }
+        return entityManager.merge(entity);
+    }
+
+    @Override
+    public List<{{entity.className}}> saveAll(List<{{entity.className}}> entities) {
+        var saved = new ArrayList<{{entity.className}}>();
+        for (var entity : entities) {
+            saved.add(save(entity));
+        }
+        return saved;
+    }
+
+    @Override
+    public {{entity.className}} findById({{idJavaType}} id) {
+        return entityManager.find({{entity.className}}.class, id);
+    }
+
+    @Override
+    public void deleteById({{idJavaType}} id) {
+        var found = findById(id);
+        if (found != null) {
+            delete(found);
+        }
+    }
+
+    @Override
+    public void delete({{entity.className}} entity) {
+        var managed = entityManager.contains(entity) ? entity : entityManager.merge(entity);
+        entityManager.remove(managed);
+    }
+
+    @Override
+    public List<{{entity.className}}> findAll() {
+        return entityManager.createQuery("from {{entity.className}}", {{entity.className}}.class).getResultList();
+    }
+
+    @Override
+    public List<{{entity.className}}> findAll(int page, int size) {
+        return entityManager.createQuery("from {{entity.className}}", {{entity.className}}.class)
+                .setFirstResult(page * size)
+                .setMaxResults(size)
+                .getResultList();
+    }
+}

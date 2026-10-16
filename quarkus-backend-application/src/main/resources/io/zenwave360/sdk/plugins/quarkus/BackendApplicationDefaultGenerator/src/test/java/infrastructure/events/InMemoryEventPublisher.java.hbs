@@ -1,0 +1,24 @@
+package {{layout.infrastructureEventsPackage}};
+
+import {{layout.domainEventsPackage}}.*;
+import {{layout.entitiesPackage}}.*;
+import {{layout.outboundEventsPackage}}.EventPublisher;
+
+import java.util.ArrayList;
+import java.util.List;
+
+public class InMemoryEventPublisher implements EventPublisher {
+
+    private final List<Object> events = new ArrayList<>();
+
+    public List<Object> getEvents() {
+        return events;
+    }
+{{~#each events as |event|}}
+
+    @Override
+    public void on{{event.className}}({{event.className}} event) {
+        events.add(event);
+    }
+{{~/each}}
+}

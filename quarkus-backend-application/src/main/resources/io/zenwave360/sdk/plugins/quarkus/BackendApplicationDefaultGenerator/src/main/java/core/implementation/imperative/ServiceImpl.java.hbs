@@ -1,0 +1,90 @@
+package {{layout.coreImplementationPackage}};
+
+import {{layout.entitiesPackage}}.*;
+import {{layout.inboundPackage}}.*;
+import {{layout.inboundDtosPackage}}.*;
+import {{layout.coreImplementationMappersPackage}}.*;
+import {{layout.outboundRepositoryPackage}}.*;
+{{~#if (and includeEmitEventsImplementation (needsEventsProducer service))}}
+import {{layout.asyncApiProducerApiPackage}}.*;
+{{~/if}}
+{{~#if (and includeEmitEventsImplementation (needsEventBus service))}}
+import {{layout.outboundEventsPackage}}.*;
+{{~/if}}
+{{~#if (includeDomainEvents service)}}
+import {{layout.domainEventsPackage}}.*;
+{{~/if}}
+
+import jakarta.enterprise.context.ApplicationScoped;
+import jakarta.inject.Inject;
+import jakarta.transaction.Transactional;
+import java.math.*;
+import java.time.*;
+import java.util.*;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+/**
+ * Service implementation for managing {{service.entityNames}}.
+ */
+@ApplicationScoped
+@Transactional
+{{annotate "application.service-impl" service.javaService service}}
+public class {{service.name}}Impl implements {{service.name}} {
+
+{{#each entities as |entity|}}
+    {{~#unless (skipEntityRepository this)}}
+    private final {{entity.className}}Repository {{entity.instanceName}}Repository;
+    {{~/unless}}
+{{/each}}
+    private final {{service.name}}Mapper {{asInstanceName service.name}}Mapper;
+{{#if (includeEmitEventsImplementation service)}}
+    {{~#if (needsEventsProducer service)}}
+    private final {{eventsProducerInterface service.name}} eventsProducer;
+    {{~/if}}
+    {{~#if (needsEventBus service)}}
+    private final EventPublisher eventPublisher;
+    {{~/if}}
+    private final EventsMapper eventsMapper;
+{{/if}}
+
+    private final Logger log = LoggerFactory.getLogger(getClass());
+
+    @Inject
+    public {{service.name}}Impl(
+{{#each entities as |entity|}}
+    {{~#unless (skipEntityRepository this)}}
+        {{entity.className}}Repository {{entity.instanceName}}Repository,
+    {{~/unless}}
+{{/each}}
+        {{service.name}}Mapper {{asInstanceName service.name}}Mapper{{#if (includeEmitEventsImplementation service)}}{{#if (needsEventsProducer service)}},
+        {{eventsProducerInterface service.name}} eventsProducer{{/if}}{{#if (needsEventBus service)}},
+        EventPublisher eventPublisher{{/if}},
+        EventsMapper eventsMapper{{/if}}
+    ) {
+{{#each entities as |entity|}}
+    {{~#unless (skipEntityRepository this)}}
+        this.{{entity.instanceName}}Repository = {{entity.instanceName}}Repository;
+    {{~/unless}}
+{{/each}}
+        this.{{asInstanceName service.name}}Mapper = {{asInstanceName service.name}}Mapper;
+{{#if (includeEmitEventsImplementation service)}}
+    {{~#if (needsEventsProducer service)}}
+        this.eventsProducer = eventsProducer;
+    {{~/if}}
+    {{~#if (needsEventBus service)}}
+        this.eventPublisher = eventPublisher;
+    {{~/if}}
+        this.eventsMapper = eventsMapper;
+{{/if}}
+    }
+
+{{#each service.methods as |method|}}
+    {{~> (partial '../partials/' persistence '/methodAnnotations')~}}
+    {{~> (partial '../partials/serviceMethodSignature') artifactType="application.service-impl"}} {
+        {{~> (partial '../partials/callsTodo')~}}
+        {{~> (partial '../partials/' persistence '/methodBody')~}}
+    }
+{{/each}}
+
+}
