@@ -1,0 +1,23 @@
+package io.zenwave360.example.orderfulfillment;
+
+import io.quarkus.test.junit.QuarkusTest;
+import java.net.URI;
+import java.net.http.HttpClient;
+
+import jakarta.transaction.Transactional;
+
+
+@QuarkusTest
+
+@Transactional
+
+public abstract class BaseQuarkusHttpTest {
+
+    protected final HttpClient httpClient = HttpClient.newHttpClient();
+
+    protected URI resourceUri(URI endpoint, String path) {
+        var base = endpoint.toString().replaceAll("/$", "");
+        var suffix = path.startsWith("/") ? path : "/" + path;
+        return URI.create(base + suffix);
+    }
+}

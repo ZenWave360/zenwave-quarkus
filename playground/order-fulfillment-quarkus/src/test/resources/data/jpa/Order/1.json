@@ -1,0 +1,14 @@
+{
+    "id": 1,
+    "version": 0,
+    "orderNumber": "ORD-0001",
+    "status": "PLACED",
+    "totalAmount": 59.90,
+    "currency": "EUR",
+    "items": [
+        { "productId": "P-001", "productName": "Keyboard", "quantity": 1, "unitPrice": 49.90 },
+        { "productId": "P-002", "productName": "Mouse pad", "quantity": 1, "unitPrice": 10.00 }
+    ],
+    "createdBy": "system",
+    "lastModifiedBy": "system"
+}

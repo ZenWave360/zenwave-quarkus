@@ -1,0 +1,43 @@
+package io.zenwave360.example.orderfulfillment.domain;
+
+import jakarta.enterprise.inject.spi.CDI;
+import jakarta.persistence.PrePersist;
+import jakarta.persistence.PreUpdate;
+
+/**
+ * JPA listener for {@code @auditing} entities: fills {@code createdBy} and {@code lastModifiedBy}.
+ * Dates are set by Hibernate {@code @CreationTimestamp} / {@code @UpdateTimestamp}.
+ */
+public class AuditingEntityListener {
+
+    public static final String DEFAULT_AUDITOR = "system";
+
+    @PrePersist
+    public void onPrePersist(Object entity) {
+        if (entity instanceof Auditable auditable) {
+            var auditor = currentAuditor();
+            auditable.markCreatedBy(auditor);
+            auditable.markLastModifiedBy(auditor);
+        }
+    }
+
+    @PreUpdate
+    public void onPreUpdate(Object entity) {
+        if (entity instanceof Auditable auditable) {
+            auditable.markLastModifiedBy(currentAuditor());
+        }
+    }
+
+    protected String currentAuditor() {
+        try {
+            var provider = CDI.current().select(AuditorProvider.class);
+            if (provider.isResolvable()) {
+                var auditor = provider.get().currentAuditor();
+                return auditor != null ? auditor : DEFAULT_AUDITOR;
+            }
+        } catch (IllegalStateException noContainer) {
+            // plain unit tests without CDI
+        }
+        return DEFAULT_AUDITOR;
+    }
+}
