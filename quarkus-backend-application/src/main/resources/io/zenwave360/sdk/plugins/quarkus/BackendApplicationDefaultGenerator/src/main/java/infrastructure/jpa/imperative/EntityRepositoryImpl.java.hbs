@@ -71,4 +71,16 @@ public class {{entity.className}}RepositoryImpl implements {{entity.className}}R
                 .setMaxResults(size)
                 .getResultList();
     }
+{{~#if (naturalIdFields entity)}}
+
+    @Override
+    public {{{naturalIdsRepoMethodSignature entity}}} {
+        return entityManager.createQuery("from {{entity.className}} where {{#joinWithTemplate (naturalIdFields entity) delimiter=' and '}}{{name}} = :{{name}}{{/joinWithTemplate}}", {{entity.className}}.class)
+                {{~#each (naturalIdFields entity)}}
+                .setParameter("{{name}}", {{name}})
+                {{~/each}}
+                .getResultStream()
+                .findFirst();
+    }
+{{~/if}}
 }

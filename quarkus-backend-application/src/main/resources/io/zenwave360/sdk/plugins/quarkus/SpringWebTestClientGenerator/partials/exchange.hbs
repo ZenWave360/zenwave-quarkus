@@ -1,17 +1,17 @@
-        var path = "{{operation.x--path}}";
+        var path{{i}} = "{{operation.x--path}}";
         {{~#each (pathParams operation) as |param|}}
-        path = path.replace("{" + "{{param.name}}" + "}", {{asInstanceName param.name}}{{i}});
+        path{{i}} = path{{i}}.replace("{" + "{{param.name}}" + "}", {{asInstanceName param.name}}{{i}});
         {{~/each}}
         {{~#if (queryParams operation)}}
-        path += "?" + String.join("&",
+        path{{i}} += "?" + String.join("&",
             {{~#each (queryParams operation) as |param|}}
             "{{param.name}}=" + {{asInstanceName param.name}}{{i}}{{#unless @last}},{{/unless}}
             {{~/each}}
         );
         {{~/if}}
-        var httpResponse = httpClient.send(
+        var httpResponse{{i}} = httpClient.send(
             java.net.http.HttpRequest.newBuilder()
-                .uri(resourceUri(endpoint, path))
+                .uri(resourceUri(endpoint, path{{i}}))
                 .header("Accept", "application/json")
                 {{~#if operation.x--request-dto}}
                 .header("Content-Type", "application/json")
@@ -20,4 +20,4 @@
                 .build(),
             java.net.http.HttpResponse.BodyHandlers.ofString()
         );
-        Assertions.assertEquals({{response.x--statusCode}}, httpResponse.statusCode());
+        Assertions.assertEquals({{response.x--statusCode}}, httpResponse{{i}}.statusCode());

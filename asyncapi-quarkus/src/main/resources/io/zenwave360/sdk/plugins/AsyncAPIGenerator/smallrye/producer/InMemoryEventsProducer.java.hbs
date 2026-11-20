@@ -5,7 +5,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import jakarta.enterprise.context.ApplicationScoped;
+import jakarta.enterprise.inject.Vetoed;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -15,8 +15,11 @@ import {{modelPackage}}.*;
 
 /**
  * {{asyncapi.description}}
+ *
+ * <p>Plain class, not a CDI bean: tests build it with {@code new} (see EventsProducerInMemoryContext),
+ * so it never competes with the SmallRye producer bean in {@code @QuarkusTest}.
  */
-@ApplicationScoped
+@Vetoed
 @jakarta.annotation.Generated(value = "io.zenwave360.sdk.plugins.AsyncAPIGeneratorPlugin", date = "{{date}}")
 {{~#if generatedAnnotationClass}}@{{generatedAnnotationClass}}{{~/if}}
 public class {{producerInMemoryName serviceName operationRoleType}} implements {{producerInterfaceName serviceName operationRoleType}} {

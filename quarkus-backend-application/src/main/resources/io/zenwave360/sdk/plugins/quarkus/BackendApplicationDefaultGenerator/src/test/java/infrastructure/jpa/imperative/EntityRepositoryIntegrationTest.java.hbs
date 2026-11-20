@@ -4,15 +4,19 @@ import {{layout.infrastructureRepositoryCommonPackage}}.BaseRepositoryIntegratio
 import {{layout.entitiesPackage}}.*;
 import {{layout.outboundRepositoryPackage}}.{{entity.className}}Repository;
 
-import java.util.HashSet;
+import java.util.*;
 import java.time.*;
 import java.math.BigDecimal;
 
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
+import io.quarkus.test.TestTransaction;
+import io.quarkus.test.junit.QuarkusTest;
 import jakarta.inject.Inject;
 import jakarta.persistence.EntityManager;
 
+@QuarkusTest
+@TestTransaction
 public class {{entity.className}}RepositoryIntegrationTest extends BaseRepositoryIntegrationTest {
 
     @Inject

@@ -1,9 +1,12 @@
 package {{layout.infrastructureRepositoryCommonPackage}};
 
+import io.quarkus.test.TestTransaction;
 import io.quarkus.test.junit.QuarkusTest;
-import jakarta.transaction.Transactional;
 
+/**
+ * Base class for repository integration tests. Each test runs in a transaction that is rolled back.
+ */
 @QuarkusTest
-@Transactional
+@TestTransaction
 public abstract class BaseRepositoryIntegrationTest {
 }
