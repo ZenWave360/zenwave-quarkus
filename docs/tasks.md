@@ -49,6 +49,9 @@ Design: `docs/001-target-stack.md` and `docs/quarkus-customization.md`.
 - [x] Flyway for prod, Hibernate `drop-and-create` + `data.sql` for dev/test, `FlywaySchemaTest` for drift.
 - [x] ArchUnit 1.5.1 (JUnit 6). ArchitectureTest allows adapters → `layout.asyncApiModelPackage` (message contract).
 - [x] Opus assessment (6/10) top 5: `@Blocking` typed consumer + DLQ; events after commit; customer-address boots (hand-written command adapter + `CustomerCommandsKafkaTest`); `Instance<>` instead of `CDI.current()`, no `KafkaNull`/`PropertyDescriptor`; producer impl in infrastructure + ArchUnit core rule; no `@Transactional` HTTP test base; JSON text serde.
+- [x] Upstream SDK ports (develop up to 41bbb4aa): multi-target `@transition` TODO (558d238b), `_entity` leak between methods (558d238b), OneToOne back-reference and `@JsonManagedReference` only when bidirectional (558d238b, 19f92747), service tests call the ZDL method name (Kotlin 90b18088, same bug in Java), create returning an array (Kotlin 558d238b). Already here: optional Config ArchUnit layer, TestDataLoader by entity name. Not applicable: Kotlin nested-input population (Java `new X()`), HexagonalProjectLayout / ZDL utils (come with the SDK jar).
+- [x] Internal listeners: after-commit + `REQUIRES_NEW` (was synchronous `@Observes` in the publisher's transaction), entity-named id TODO. `EventListenersTest` on upstream `orders-cross-module-listeners.zdl`.
+- [ ] Runtime e2e for internal listeners (no e2e model has an in-process event + `@listener`).
 - [ ] Transactional outbox for SmallRye (at-least-once).
 - [ ] Assessment leftovers: L2 `@Cache` opt-in, prod config without default credentials, paging `ORDER BY`, delete of missing id, 200 vs 201 on pay/ship/cancel, message assertions in `@QuarkusTest`, observability.
 - [ ] Upstream: provider-side command consumer service impl not generated (only `apis { asyncapi }` + `implementEventListeners`); `Headers._runtimeheaders` package-private.

@@ -1,23 +1,23 @@
 {{~#each entities as |entity|}}
     {{~#if (isCrudMethod 'create' method=method entity=entity )}}
         {{> (partial '../../partials/inputInstantiation')~}}
-        var {{entity.instanceName}} = {{serviceInstance}}.create{{entity.className}}(input);
+        var {{entity.instanceName}} = {{serviceInstance}}.{{method.name}}(input){{#if method.returnTypeIsArray}}.get(0){{/if}};
         assertNotNull({{entity.instanceName}}.getId());
         assertTrue({{entity.instanceName}}Repository.containsEntity({{entity.instanceName}}));
     {{~else if (isCrudMethod 'update' method=method entity=entity )}}
         {{{idFieldInitialization method}}}
         {{> (partial '../../partials/inputInstantiation')~}}
-        var {{entity.instanceName}} = {{serviceInstance}}.update{{entity.className}}({{{idParamsCallSignature method}}}, input);
+        var {{entity.instanceName}} = {{serviceInstance}}.{{method.name}}({{{idParamsCallSignature method}}}, input);
         assertNotNull({{entity.instanceName}});
         assertTrue({{entity.instanceName}}Repository.containsEntity({{entity.instanceName}}));
     {{~else if (isCrudMethod 'list' method=method entity=entity) }}
     {{~else if (isCrudMethod 'get' method=method entity=entity )}}
         {{{idFieldInitialization method}}}
-        var {{entity.instanceName}} = {{serviceInstance}}.get{{entity.className}}({{{idParamsCallSignature method}}});
+        var {{entity.instanceName}} = {{serviceInstance}}.{{method.name}}({{{idParamsCallSignature method}}});
         assertNotNull({{entity.instanceName}});
     {{~else if (isCrudMethod 'delete' method=method entity=entity )}}
         {{{idFieldInitialization method}}}
-        {{serviceInstance}}.delete{{entity.className}}({{{idParamsCallSignature method}}});
+        {{serviceInstance}}.{{method.name}}({{{idParamsCallSignature method}}});
     {{~else~}}
     // TODO: implement this test
     {{~/if}}

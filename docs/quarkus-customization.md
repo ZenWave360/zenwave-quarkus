@@ -136,13 +136,15 @@ Application service implementation: `@ApplicationScoped` and `jakarta.transactio
 
 Inbound service: a plain Java interface.
 
+Lifecycle (`@transition`): a single `to` target is set after the update. Several targets render a `TODO CUSTOM_REQUIRED` naming them (SDK helpers `singleTransitionTo` / `transitionTargets`).
+
 Entity: Jakarta Persistence `@Entity` in the domain package, same placement as the official JPA entity template. Auditing (`@auditing`): Hibernate `@CreationTimestamp` / `@UpdateTimestamp` for dates; `@EntityListeners(AuditingEntityListener.class)` and `implements Auditable` for `createdBy` / `lastModifiedBy`. The listener (a CDI bean in Quarkus) injects `Instance<AuditorProvider>`, so ArC keeps an application-supplied provider (application-supplied, e.g. from `SecurityIdentity`) and falls back to `system`. No `CDI.current()`, no reflection, so native builds need no registration. Types without an id (`@json`, `@embedded`) get value `equals` / `hashCode`. Getters and setters are explicit. Lombok stays off.
 
 Repository port: finder and save operations the service partials call. Repository implementation: `@ApplicationScoped`, `EntityManager`.
 
 Mappers: `@Mapper(componentModel = "cdi")`, injected.
 
-`EventPublisher` is a framework-free port. `DefaultEventPublisher` fires `jakarta.enterprise.event.Event`. Listeners are `@ApplicationScoped` with `@Observes` and delegate to the application service.
+`EventPublisher` is a framework-free port. `DefaultEventPublisher` fires `jakarta.enterprise.event.Event`. Listeners (`@listener`, `implementEventListeners`) are `@ApplicationScoped` and delegate to the application service. Each method is `@Observes(during = TransactionPhase.AFTER_SUCCESS)` + `@Transactional(REQUIRES_NEW)`: the CDI counterpart of Spring Modulith `@ApplicationModuleListener`, without async. It runs after the publisher commits, never on rollback, immediately when no transaction is active, in its own transaction. A failure does not undo the publisher's commit, so delivery is at-most-once. Verified on Narayana with a `@QuarkusTest` probe.
 
 JAX-RS resource: `@ApplicationScoped`, `@Path`, verb annotations, constructor injection of the inbound service and the DTO mapper. It does not implement a generated Spring interface. The return type is the response body, or `jakarta.ws.rs.core.Response` when the operation needs an explicit status or location. A paginated operation calls the service with `int page, int size` and maps the `List` into the paginated DTO by setting `content`. `PatchMap.java` uses the same skip rule as `OpenAPIControllersKotlinTemplates`.
 

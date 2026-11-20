@@ -29,8 +29,10 @@
 
     var result = {{asInstanceName aggregateCommand.aggregate.className}}.{{aggregateCommand.command.name}}({{#if method.parameter}}input{{/if}});
 
-    {{~#if method.transition.to}}
-    rootEntity.set{{capitalize aggregateCommand.aggregate.lifecycle.field}}({{lifecycleFieldType aggregateCommand.aggregate}}.{{method.transition.to}});
+    {{~#if (singleTransitionTo method)}}
+    rootEntity.set{{capitalize aggregateCommand.aggregate.lifecycle.field}}({{lifecycleFieldType aggregateCommand.aggregate}}.{{singleTransitionTo method}});
+    {{~else if method.transition.to}}
+    // TODO CUSTOM_REQUIRED: call rootEntity.set{{capitalize aggregateCommand.aggregate.lifecycle.field}}(...) with one of {{transitionTargets method}}
     {{~/if}}
 
     {{aggregateCommand.entity.instanceName}}Repository.save(result.getAggregateRoot());
@@ -93,8 +95,10 @@
 
         var {{asInstanceName aggregateCommand.aggregate.className}}Result = {{asInstanceName aggregateCommand.aggregate.className}}.{{aggregateCommand.command.name}}({{#if method.parameter}}input{{/if}});
 
-        {{~#if method.transition.to}}
-        rootEntity.set{{capitalize aggregateCommand.aggregate.lifecycle.field}}({{lifecycleFieldType aggregateCommand.aggregate}}.{{method.transition.to}});
+        {{~#if (singleTransitionTo method)}}
+        rootEntity.set{{capitalize aggregateCommand.aggregate.lifecycle.field}}({{lifecycleFieldType aggregateCommand.aggregate}}.{{singleTransitionTo method}});
+        {{~else if method.transition.to}}
+        // TODO CUSTOM_REQUIRED: call rootEntity.set{{capitalize aggregateCommand.aggregate.lifecycle.field}}(...) with one of {{transitionTargets method}}
         {{~/if}}
 
         {{aggregateCommand.entity.instanceName}}Repository.save({{asInstanceName aggregateCommand.aggregate.className}}Result.getAggregateRoot());

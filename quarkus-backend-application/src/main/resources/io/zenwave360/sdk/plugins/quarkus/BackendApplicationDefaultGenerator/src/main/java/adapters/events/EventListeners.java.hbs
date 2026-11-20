@@ -7,10 +7,17 @@ import {{layout.adaptersEventsMappersPackage}}.{{listenerGroup.className}}Mapper
 {{~/if}}
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.enterprise.event.Observes;
+import jakarta.enterprise.event.TransactionPhase;
 import jakarta.inject.Inject;
+import jakarta.transaction.Transactional;
 
 /**
  * Internal domain event listeners for {{listenerGroup.name}}.
+ *
+ * <p>Same contract as Spring Modulith {@code @ApplicationModuleListener}, minus async: each listener runs after the
+ * publishing transaction commits ({@code AFTER_SUCCESS}; never on rollback; immediately when there is no transaction),
+ * in its own transaction ({@code REQUIRES_NEW}). A failure does not undo the publisher's commit: delivery is
+ * at-most-once, use an outbox when a listener must not be lost.
  *
  * This class is generated once and can be customized safely.
  */
@@ -44,16 +51,19 @@ public class {{listenerGroup.className}} {
 
 {{~#each listenerGroup.bindings as |binding|}}
 
-    public void {{binding.listenerMethodName}}(@Observes {{binding.eventType}} event) {
+    @Transactional(Transactional.TxType.REQUIRES_NEW)
+    public void {{binding.listenerMethodName}}(@Observes(during = TransactionPhase.AFTER_SUCCESS) {{binding.eventType}} event) {
         {{~#if (eq binding.mode "MAPPER")}}
         {{~#if binding.idPlaceholder}}
-        {{binding.idJavaType}} {{binding.idParamName}} = null; // TODO CUSTOM_REQUIRED: resolve the id for {{binding.eventName}}
+        // TODO CUSTOM_REQUIRED: resolve the {{#if binding.method.entity}}{{binding.method.entity}} {{/if}}id for {{binding.eventName}} (no event field is assumed to carry it)
+        {{binding.idJavaType}} {{binding.idParamName}} = null;
         {{binding.serviceInstanceName}}.{{binding.methodName}}({{binding.idParamName}}, mapper.{{binding.mapperMethodName}}(event));
         {{~else}}
         {{binding.serviceInstanceName}}.{{binding.methodName}}(mapper.{{binding.mapperMethodName}}(event));
         {{~/if}}
         {{~else if (eq binding.mode "ID_ONLY")}}
-        {{binding.idJavaType}} {{binding.idParamName}} = null; // TODO CUSTOM_REQUIRED: resolve the id for {{binding.eventName}}
+        // TODO CUSTOM_REQUIRED: resolve the {{#if binding.method.entity}}{{binding.method.entity}} {{/if}}id for {{binding.eventName}} (no event field is assumed to carry it)
+        {{binding.idJavaType}} {{binding.idParamName}} = null;
         {{binding.serviceInstanceName}}.{{binding.methodName}}({{binding.idParamName}});
         {{~else}}
         // TODO CUSTOM_REQUIRED: map {{binding.eventName}} to the service method input and invoke {{binding.serviceInstanceName}}.{{binding.methodName}}(...)
