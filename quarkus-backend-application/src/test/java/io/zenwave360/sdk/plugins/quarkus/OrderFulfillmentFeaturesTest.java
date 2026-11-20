@@ -55,6 +55,9 @@ class OrderFulfillmentFeaturesTest {
         String listener = Files.readString(MAIN.resolve("domain/AuditingEntityListener.java"));
         assertFalse(listener.contains("java.lang.reflect"));
         assertFalse(listener.contains("VarHandle"));
+        // CDI injection keeps the AuditorProvider bean from ArC unused-bean removal
+        assertFalse(listener.contains("CDI.current()"));
+        assertTrue(listener.contains("Instance<AuditorProvider>"));
     }
 
     @Test

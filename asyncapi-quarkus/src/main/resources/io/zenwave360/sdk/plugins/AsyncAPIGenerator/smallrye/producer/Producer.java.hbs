@@ -1,4 +1,4 @@
-package {{producerApiPackage}};
+package {{#if producerImplementationPackage}}{{producerImplementationPackage}}{{else}}{{producerApiPackage}}{{/if}};
 
 import java.nio.charset.StandardCharsets;
 import java.util.Map;
@@ -8,6 +8,11 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
 import jakarta.enterprise.context.ApplicationScoped;
+import jakarta.enterprise.inject.Any;
+import jakarta.enterprise.inject.Instance;
+import jakarta.transaction.Status;
+import jakarta.transaction.Synchronization;
+import jakarta.transaction.TransactionSynchronizationRegistry;
 import org.apache.kafka.common.header.internals.RecordHeaders;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.eclipse.microprofile.reactive.messaging.Channel;
@@ -16,24 +21,53 @@ import org.eclipse.microprofile.reactive.messaging.Message;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import io.quarkus.runtime.annotations.RegisterForReflection;
 import io.smallrye.reactive.messaging.kafka.api.OutgoingKafkaRecordMetadata;
 
 {{#if modelPackage}}
 import {{modelPackage}}.*;
 {{/if}}
+{{#if producerImplementationPackage}}
+import {{producerApiPackage}}.{{producerInterfaceName serviceName operationRoleType}};
+{{/if}}
 
 /**
  * {{asyncapi.description}}
+ *
+ * <p>Payload is sent as JSON text (StringSerializer) with a {@code __TypeId__} header (payload class name).
+ * Inside an active JTA transaction the message is sent after commit and dropped on rollback:
+ * consumers never see events for changes that did not commit. Delivery is then at-most-once (failures are logged);
+ * use a transactional outbox for at-least-once. Outside a transaction the call waits for the broker ack.
  */
 @ApplicationScoped
+@RegisterForReflection(targets = {
+{{~initVisited 'reflectionType'}}
+{{~#each operations as |operation|}}
+    {{~#each (operationMessages operation.operationId) as |message|}}
+    {{~#unless (isVisited 'reflectionType' message.x--javaType register=true)}}
+        {{message.x--javaType}}.class,
+    {{~/unless}}
+    {{~/each}}
+{{~/each}}
+})
 @jakarta.annotation.Generated(value = "io.zenwave360.sdk.plugins.AsyncAPIGeneratorPlugin", date = "{{date}}")
 {{~#if generatedAnnotationClass}}@{{generatedAnnotationClass}}{{~/if}}
 public class {{producerClassName serviceName operationRoleType}} implements {{producerInterfaceName serviceName operationRoleType}} {
 
+    public static final String TYPE_ID_HEADER = "__TypeId__";
+
     protected Logger log = LoggerFactory.getLogger(getClass());
 
+    protected final ObjectMapper objectMapper;
+    protected final Instance<TransactionSynchronizationRegistry> transactionRegistry;
+{{~#if (hasRuntimeHeaders operations)}}
+    protected final Instance<Object> beans;
+{{~/if}}
+
 {{~#each (channelNames operations) as |channelName|}}
-    protected final Emitter<Object> {{asInstanceName channelName}}Emitter;
+    protected final Emitter<String> {{asInstanceName channelName}}Emitter;
     @ConfigProperty(name = "app.kafka.topics.{{componentPrefix}}{{kebabCase channelName}}.timeout", defaultValue = "10")
     int {{asInstanceName channelName}}Timeout = 10;
 {{~/each}}
@@ -43,10 +77,20 @@ public class {{producerClassName serviceName operationRoleType}} implements {{pr
 {{~/if}}
 
     public {{producerClassName serviceName operationRoleType}}(
+            ObjectMapper objectMapper,
+            Instance<TransactionSynchronizationRegistry> transactionRegistry,
+{{~#if (hasRuntimeHeaders operations)}}
+            @Any Instance<Object> beans,
+{{~/if}}
 {{~#each (channelNames operations) as |channelName|}}
-            @Channel("{{componentPrefix}}{{channelName}}{{componentSuffix}}") Emitter<Object> {{asInstanceName channelName}}Emitter{{#unless @last}},{{/unless}}
+            @Channel("{{componentPrefix}}{{channelName}}{{componentSuffix}}") Emitter<String> {{asInstanceName channelName}}Emitter{{#unless @last}},{{/unless}}
 {{~/each}}
     ) {
+        this.objectMapper = objectMapper;
+        this.transactionRegistry = transactionRegistry;
+{{~#if (hasRuntimeHeaders operations)}}
+        this.beans = beans;
+{{~/if}}
 {{~#each (channelNames operations) as |channelName|}}
         this.{{asInstanceName channelName}}Emitter = {{asInstanceName channelName}}Emitter;
 {{~/each}}
@@ -67,9 +111,10 @@ public class {{producerClassName serviceName operationRoleType}} implements {{pr
         log.debug("Sending message to channel: {}", "{{operation.x--channel}}");
         {{~#if (hasRuntimeHeaders message)}}
         headers = headers != null ? headers : new {{message.x--javaTypeSimpleName}}Headers();
-        processRuntimeHeaders(payload, headers, {{message.x--javaTypeSimpleName}}Headers._runtimeheaders);
+        // same map as {{message.x--javaTypeSimpleName}}Headers._runtimeheaders (package-private in the port)
+        processRuntimeHeaders(payload, headers, java.util.Map.of({{{runtimeHeadersMap message}}}));
         {{~/if}}
-        Object body = {{#if (hasEnterpriseEnvelope operation)}}wrap(wrapNullPayload(payload)){{else}}wrapNullPayload(payload){{/if}};
+        Object body = {{#if (hasEnterpriseEnvelope operation)}}wrap(payload){{else}}payload{{/if}};
         return sendMessage({{asInstanceName operation.x--channel}}Emitter, body, headers, {{asInstanceName operation.x--channel}}Timeout);
     }
 
@@ -89,9 +134,24 @@ public class {{producerClassName serviceName operationRoleType}} implements {{pr
     }
 {{~/if}}
 
-    private Message<Object> outgoingMessage(Object payload, Map<String, Object> headers) {
+    /** JSON text; {@code null} payload is sent as a Kafka tombstone. */
+    protected String toJson(Object payload) {
+        if (payload == null) {
+            return null;
+        }
+        try {
+            return objectMapper.writeValueAsString(payload);
+        } catch (JsonProcessingException e) {
+            throw new IllegalArgumentException("Unable to serialize " + payload.getClass().getName(), e);
+        }
+    }
+
+    private Message<String> outgoingMessage(Object payload, Map<String, Object> headers) {
         RecordHeaders recordHeaders = new RecordHeaders();
         String key = null;
+        if (payload != null && (headers == null || !headers.containsKey(TYPE_ID_HEADER))) {
+            recordHeaders.add(TYPE_ID_HEADER, payload.getClass().getName().getBytes(StandardCharsets.UTF_8));
+        }
         if (headers != null) {
             for (Map.Entry<String, Object> entry : headers.entrySet()) {
                 if (entry.getValue() == null) {
@@ -108,12 +168,55 @@ public class {{producerClassName serviceName operationRoleType}} implements {{pr
                 .withKey(key)
                 .withHeaders(recordHeaders)
                 .build();
-        return Message.of(payload).addMetadata(metadata);
+        return Message.of(toJson(payload)).addMetadata(metadata);
     }
 
-    private boolean sendMessage(Emitter<Object> emitter, Object payload, Map<String, Object> headers, int timeout) {
+    private boolean sendMessage(Emitter<String> emitter, Object payload, Map<String, Object> headers, int timeout) {
+        Message<String> message = outgoingMessage(payload, headers);
+        TransactionSynchronizationRegistry transaction = activeTransaction();
+        if (transaction != null) {
+            transaction.registerInterposedSynchronization(new Synchronization() {
+                @Override
+                public void beforeCompletion() {}
+
+                @Override
+                public void afterCompletion(int status) {
+                    if (status == Status.STATUS_COMMITTED) {
+                        sendAfterCommit(emitter, message);
+                    } else {
+                        log.debug("Transaction not committed, message discarded");
+                    }
+                }
+            });
+            return true;
+        }
+        return sendAndWait(emitter, message, timeout);
+    }
+
+    private TransactionSynchronizationRegistry activeTransaction() {
+        if (transactionRegistry.isResolvable()) {
+            TransactionSynchronizationRegistry registry = transactionRegistry.get();
+            if (registry.getTransactionStatus() == Status.STATUS_ACTIVE) {
+                return registry;
+            }
+        }
+        return null;
+    }
+
+    private void sendAfterCommit(Emitter<String> emitter, Message<String> message) {
+        try {
+            emitter.send(message.withNack(reason -> {
+                log.error("Failed to send message after commit: {}", reason.getMessage(), reason);
+                return CompletableFuture.completedFuture(null);
+            }));
+        } catch (RuntimeException e) {
+            log.error("Failed to send message after commit: {}", e.getMessage(), e);
+        }
+    }
+
+    private boolean sendAndWait(Emitter<String> emitter, Message<String> message, int timeout) {
         CompletableFuture<Void> acknowledged = new CompletableFuture<>();
-        Message<Object> message = outgoingMessage(payload, headers)
+        Message<String> tracked = message
                 .withAck(() -> {
                     acknowledged.complete(null);
                     return CompletableFuture.completedFuture(null);
@@ -123,7 +226,7 @@ public class {{producerClassName serviceName operationRoleType}} implements {{pr
                     return CompletableFuture.completedFuture(null);
                 });
         try {
-            emitter.send(message);
+            emitter.send(tracked);
             acknowledged.get(timeout, TimeUnit.SECONDS);
             return true;
         } catch (InterruptedException e) {
@@ -137,7 +240,6 @@ public class {{producerClassName serviceName operationRoleType}} implements {{pr
         }
     }
 
-{{> (partial '../../shared/producer/partials/wrapNullPayload')}}
 {{> (partial 'partials/runtime-headers')}}
 
 }

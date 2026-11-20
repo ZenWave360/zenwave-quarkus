@@ -4,13 +4,11 @@ import io.quarkus.test.junit.QuarkusTest;
 import java.net.URI;
 import java.net.http.HttpClient;
 
-import jakarta.transaction.Transactional;
-
-
+/**
+ * Real HTTP calls: requests run on server threads and commit, so a test transaction (the {@code transactional} option)
+ * would roll nothing back. Tests create the data they need.
+ */
 @QuarkusTest
-
-@Transactional
-
 public abstract class BaseQuarkusHttpTest {
 
     protected final HttpClient httpClient = HttpClient.newHttpClient();

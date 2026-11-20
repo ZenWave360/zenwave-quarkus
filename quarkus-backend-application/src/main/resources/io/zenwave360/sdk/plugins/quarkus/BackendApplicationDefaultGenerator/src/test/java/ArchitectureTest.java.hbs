@@ -10,6 +10,8 @@ import com.tngtech.archunit.base.DescribedPredicate;
 import com.tngtech.archunit.core.domain.JavaClass;
 import com.tngtech.archunit.library.Architectures;
 
+import static com.tngtech.archunit.lang.syntax.ArchRuleDefinition.noClasses;
+
 @AnalyzeClasses(packages = "{{layout.moduleBasePackage}}", importOptions = DoNotIncludeTests.class)
 public class ArchitectureTest {
 
@@ -74,4 +76,17 @@ public class ArchitectureTest {
         .adapter("outbound", "..infrastructure.(*)..")
 
         .ignoreDependency(JavaClass.Predicates.resideInAPackage("..config.."), DescribedPredicate.alwaysTrue());
+
+    /**
+     * Core is framework-light: messaging and HTTP stay in adapters/infrastructure.
+     */
+    @ArchTest
+    public static final ArchRule coreDoesNotDependOnMessagingOrHttp = noClasses()
+        .that().resideInAPackage("{{layout.moduleBasePackage}}.core..")
+        .should().dependOnClassesThat().resideInAnyPackage(
+                "io.smallrye.reactive.messaging..",
+                "org.eclipse.microprofile.reactive.messaging..",
+                "org.apache.kafka..",
+                "jakarta.ws.rs..",
+                "org.jboss.resteasy..");
 }

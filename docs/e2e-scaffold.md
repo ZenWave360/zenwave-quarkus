@@ -5,7 +5,7 @@ How the Quarkus projects under `e2e/src/test/resources/projects/` were created, 
 | Project | Model (source of truth) | What e2e runs |
 |---|---|---|
 | `order-fulfillment-quarkus` | `test-resources/.../zdl/order-fulfillment.zdl` | `-Pzenwave verify -DskipITs=false`: regenerate (hand-edited files kept), all tests incl. `*IT` on Dev Services. `test-compile` only without Docker. |
-| `customer-address-relational` | `test-resources/.../zdl/customer-address-relational.zdl` | `-Pzenwave test -Dtest=ArchitectureTest`: fresh generation, compile, architecture rules. |
+| `customer-address-relational` | `test-resources/.../zdl/customer-address-relational.zdl` | `-Pzenwave test -Dtest=ArchitectureTest,CustomerCommandsKafkaTest`: fresh generation, compile, architecture rules, Kafka round trip (Docker only). |
 
 Each project keeps a `zenwave-model.zdl` so it runs on its own. The e2e test overwrites it in the `target/projects` copy with the `test-resources` model.
 
@@ -68,7 +68,7 @@ Seed `V1__init.sql` from the Hibernate DDL:
 
 ## 4. Second project from the first
 
-`customer-address-relational` was copied from `order-fulfillment-quarkus`: wrapper, `.mvn`, docker files, compose, and the pom. Only these were changed: `groupId`/`artifactId`/`name`, the properties block (CleanHexagonal packages under `io.example.orders`), dropping the order-specific `http-tests-business-flow` execution, the hibernate package, and the channels in `application.properties`. The generated sources are not checked in.
+`customer-address-relational` was copied from `order-fulfillment-quarkus`: wrapper, `.mvn`, docker files, compose, and the pom. Only these were changed: `groupId`/`artifactId`/`name`, the properties block (CleanHexagonal packages under `io.example.orders`), dropping the order-specific `http-tests-business-flow` execution, the hibernate package, the channels and DLQ in `application.properties`, and `producerImplementationPackage`. Generated sources are not checked in. The command adapter and its Kafka test are hand-written.
 
 ## 5. New project
 

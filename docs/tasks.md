@@ -48,6 +48,10 @@ Design: `docs/001-target-stack.md` and `docs/quarkus-customization.md`.
 - [x] ZDL passed as `configOptions/zdlFile` only (no deprecated `zdlFiles`).
 - [x] Flyway for prod, Hibernate `drop-and-create` + `data.sql` for dev/test, `FlywaySchemaTest` for drift.
 - [x] ArchUnit 1.5.1 (JUnit 6). ArchitectureTest allows adapters → `layout.asyncApiModelPackage` (message contract).
+- [x] Opus assessment (6/10) top 5: `@Blocking` typed consumer + DLQ; events after commit; customer-address boots (hand-written command adapter + `CustomerCommandsKafkaTest`); `Instance<>` instead of `CDI.current()`, no `KafkaNull`/`PropertyDescriptor`; producer impl in infrastructure + ArchUnit core rule; no `@Transactional` HTTP test base; JSON text serde.
+- [ ] Transactional outbox for SmallRye (at-least-once).
+- [ ] Assessment leftovers: L2 `@Cache` opt-in, prod config without default credentials, paging `ORDER BY`, delete of missing id, 200 vs 201 on pay/ship/cancel, message assertions in `@QuarkusTest`, observability.
+- [ ] Upstream: provider-side command consumer service impl not generated (only `apis { asyncapi }` + `implementEventListeners`); `Headers._runtimeheaders` package-private.
 - [ ] Fix upstream `GeneratorMojo`: `.zdl` inputSpec double `file:` URI; mojo `zdlFile` param maps to deprecated `zdlFiles`. Drop the scaffold placeholder after.
 - [ ] JAX-RS exception mappers as generated (or documented) output, now hand-written in order-fulfillment.
 - [ ] Scaffold quality: `ServiceMapper` comments (`PayOrderInputnull-Order`), `ZDLToOpenAPI` examples ignore `maxLength`, `data.sql` is an LLM prompt, not SQL, JPA fixtures hold only id/version.

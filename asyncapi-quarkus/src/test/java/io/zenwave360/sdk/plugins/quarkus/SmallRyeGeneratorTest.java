@@ -79,5 +79,22 @@ class SmallRyeGeneratorTest {
         assertFalse(inMemory.contains("@ApplicationScoped"));
         assertFalse(producer.contains("@Incoming"));
         assertFalse(consumer.contains("Emitter"));
+
+        // consumer: worker thread, JSON text typed by __TypeId__ or single type
+        assertTrue(consumer.contains("@Blocking"));
+        assertTrue(consumer.contains("Message<String> message"));
+        assertTrue(consumer.contains("objectMapper.readValue(json, type)"));
+        assertTrue(consumer.contains("@RegisterForReflection"));
+        // producer: JSON + type header, sent after commit inside a transaction
+        assertTrue(producer.contains("Emitter<String>"));
+        assertTrue(producer.contains("TYPE_ID_HEADER"));
+        assertTrue(producer.contains("registerInterposedSynchronization"));
+        assertTrue(producer.contains("Status.STATUS_COMMITTED"));
+        for (String source : List.of(producer, consumer, inMemory)) {
+            assertFalse(source.contains("KafkaNull"));
+            assertFalse(source.contains("PropertyDescriptor"));
+            assertFalse(source.contains("CDI.current()"));
+        }
+        assertTrue(inMemory.contains("ConcurrentHashMap"));
     }
 }

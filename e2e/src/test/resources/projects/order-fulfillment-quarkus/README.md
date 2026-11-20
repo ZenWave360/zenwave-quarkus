@@ -37,7 +37,7 @@ Model: `zenwave-model.zdl`, a copy of `test-resources/src/main/resources/zdl/ord
 
 - `OrderServiceImpl.placeOrder` body (order number, total, save)
 - `WebExceptionMappers`: `NoSuchElementException` → 404, invalid state transition → 409
-- tests: `OrderServiceTest`, `OrderApiControllerTest`, `OrderApiIntegrationTest`, `FromPlaceOrderToCancelIT`, `FlywaySchemaTest`
+- tests: `AuditingTest` + `config/TestAuditorProvider`, `OrderServiceTest`, `OrderApiControllerTest`, `OrderApiIntegrationTest`, `FromPlaceOrderToCancelIT`, `FlywaySchemaTest`
 - `src/main/resources/db/migration/V1__init.sql`
 - `src/test/resources/data.sql`, `data/jpa/Order/1.json`
 - `src/main/resources/application.properties`, `docker-compose.yml`

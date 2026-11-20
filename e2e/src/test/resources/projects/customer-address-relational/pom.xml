@@ -46,6 +46,8 @@
         <openApiModelPackage>${basePackage}.adapters.web.dtos</openApiModelPackage>
         <asyncApiModelPackage>${basePackage}.core.outbound.events.dtos</asyncApiModelPackage>
         <asyncApiProducerApiPackage>${basePackage}.core.outbound.events</asyncApiProducerApiPackage>
+        <!-- SmallRye producer implementation outside core -->
+        <asyncApiProducerImplementationPackage>${basePackage}.infrastructure.events</asyncApiProducerImplementationPackage>
         <asyncApiConsumerApiPackage>${basePackage}.adapters.commands</asyncApiConsumerApiPackage>
     </properties>
 
@@ -221,6 +223,7 @@
                                 <templates>io.zenwave360.sdk.plugins.quarkus.SmallRyeTemplates</templates>
                                 <modelPackage>${asyncApiModelPackage}</modelPackage>
                                 <producerApiPackage>${asyncApiProducerApiPackage}</producerApiPackage>
+                                <producerImplementationPackage>${asyncApiProducerImplementationPackage}</producerImplementationPackage>
                                 <consumerApiPackage>${asyncApiConsumerApiPackage}</consumerApiPackage>
                                 <jsonschema2pojo.isUseJakartaValidation>true</jsonschema2pojo.isUseJakartaValidation>
                                 <jsonschema2pojo.useLongIntegers>true</jsonschema2pojo.useLongIntegers>

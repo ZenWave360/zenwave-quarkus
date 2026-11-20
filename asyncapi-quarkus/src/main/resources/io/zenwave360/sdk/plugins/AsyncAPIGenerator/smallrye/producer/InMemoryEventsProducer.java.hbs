@@ -2,6 +2,8 @@ package {{producerApiPackage}};
 
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.List;
 import java.util.Map;
 
@@ -25,6 +27,12 @@ import {{modelPackage}}.*;
 public class {{producerInMemoryName serviceName operationRoleType}} implements {{producerInterfaceName serviceName operationRoleType}} {
 
     protected Logger log = LoggerFactory.getLogger(getClass());
+{{~#if (hasRuntimeHeaders operations)}}
+
+    /** runtime headers: {@code #/path} is read from this tree; {@code $bean} suppliers are not resolved (no CDI). */
+    protected com.fasterxml.jackson.databind.ObjectMapper objectMapper = new com.fasterxml.jackson.databind.ObjectMapper().findAndRegisterModules();
+    protected jakarta.enterprise.inject.Instance<Object> beans;
+{{~/if}}
 
 {{~#each operations as |operation|}}
     public String {{operation.operationId}}BindingName = "{{componentPrefix}}{{kebabCase operation.operationId}}{{componentSuffix}}";
@@ -38,7 +46,7 @@ public class {{producerInMemoryName serviceName operationRoleType}} implements {
     }
 {{~/if}}
 
-    protected Map<String, List<CapturedMessage>> capturedMessages = new HashMap<>();
+    protected Map<String, List<CapturedMessage>> capturedMessages = new ConcurrentHashMap<>();
 
     public Map<String, List<CapturedMessage>> getCapturedMessages() {
         return capturedMessages;
@@ -54,7 +62,7 @@ public class {{producerInMemoryName serviceName operationRoleType}} implements {
     }
 
     private boolean appendCapturedMessage(String bindingName, CapturedMessage message) {
-        capturedMessages.computeIfAbsent(bindingName, key -> new ArrayList<>()).add(message);
+        capturedMessages.computeIfAbsent(bindingName, key -> new CopyOnWriteArrayList<>()).add(message);
         return true;
     }
 
@@ -69,7 +77,7 @@ public class {{producerInMemoryName serviceName operationRoleType}} implements {
         headers = headers != null ? headers : new {{message.x--javaTypeSimpleName}}Headers();
         processRuntimeHeaders(payload, headers, {{message.x--javaTypeSimpleName}}Headers._runtimeheaders);
         {{~/if}}
-        Object body = {{#if (hasEnterpriseEnvelope operation)}}wrap(wrapNullPayload(payload)){{else}}wrapNullPayload(payload){{/if}};
+        Object body = {{#if (hasEnterpriseEnvelope operation)}}wrap(payload){{else}}payload{{/if}};
         Map<String, Object> capturedHeaders = headers == null ? null : new HashMap<>(headers);
         return appendCapturedMessage({{operation.operationId}}BindingName, new CapturedMessage(body, capturedHeaders));
     }
@@ -108,7 +116,6 @@ public class {{producerInMemoryName serviceName operationRoleType}} implements {
     }
 {{/if}}
 
-{{> (partial '../../shared/producer/partials/wrapNullPayload')}}
 {{> (partial 'partials/runtime-headers')}}
 
 }

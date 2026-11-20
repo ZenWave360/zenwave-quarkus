@@ -2,6 +2,7 @@ package {{consumerApiPackage}};
 
 import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletionStage;
 
@@ -12,6 +13,10 @@ import org.eclipse.microprofile.reactive.messaging.Message;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import io.quarkus.runtime.annotations.RegisterForReflection;
+import io.smallrye.reactive.messaging.annotations.Blocking;
 import io.smallrye.reactive.messaging.kafka.api.IncomingKafkaRecordMetadata;
 
 {{#if modelPackage}}
@@ -20,22 +25,53 @@ import {{modelPackage}}.*;
 
 /**
  * {{asyncapi.description}}
+ *
+ * <p>Payload is JSON text (StringDeserializer). The target type comes from the {@code __TypeId__} header
+ * (fully qualified or simple class name, as Spring Kafka's JsonSerializer writes it), or is the channel's only message type.
+ * Runs on a worker thread ({@code @Blocking}): service calls may be transactional.
+ * A failed message is nacked; set {@code mp.messaging.incoming.<channel>.failure-strategy=dead-letter-queue} to keep consuming.
  */
 @ApplicationScoped
+@RegisterForReflection(targets = {
+{{~initVisited 'reflectionType'}}
+{{~#each operations as |operation|}}
+    {{~#each (operationMessages operation.operationId) as |message|}}
+    {{~#unless (isVisited 'reflectionType' message.x--javaType register=true)}}
+        {{message.x--javaType}}.class,
+    {{~/unless}}
+    {{~/each}}
+{{~/each}}
+})
 @jakarta.annotation.Generated(value = "io.zenwave360.sdk.plugins.AsyncAPIGeneratorPlugin", date = "{{date}}")
 {{~#if generatedAnnotationClass}}@{{generatedAnnotationClass}}{{~/if}}
 public class {{consumerName (camelCase channelName)}} {
 
+    public static final String TYPE_ID_HEADER = "__TypeId__";
+
     protected Logger log = LoggerFactory.getLogger(getClass());
 
+    protected static final List<Class<?>> MESSAGE_TYPES = List.of(new Class<?>[] {
+{{~initVisited 'listType'}}
+{{~#each operations as |operation|}}
+    {{~#each (operationMessages operation.operationId) as |message|}}
+    {{~#unless (isVisited 'listType' message.x--javaType register=true)}}
+            {{message.x--javaType}}.class,
+    {{~/unless}}
+    {{~/each}}
+{{~/each}}
+    });
+
     protected final {{consumerServiceInterfaceName (camelCase channelName)}} service;
+
+    protected final ObjectMapper objectMapper;
 
 {{~#if useEnterpriseEnvelope}}
     public EnvelopeUnWrapper envelopeUnWrapper;
 {{~/if}}
 
-    public {{consumerName (camelCase channelName)}}({{consumerServiceInterfaceName (camelCase channelName)}} service) {
+    public {{consumerName (camelCase channelName)}}({{consumerServiceInterfaceName (camelCase channelName)}} service, ObjectMapper objectMapper) {
         this.service = service;
+        this.objectMapper = objectMapper;
     }
 
 {{~#if useEnterpriseEnvelope}}
@@ -45,12 +81,12 @@ public class {{consumerName (camelCase channelName)}} {
 {{~/if}}
 
     @Incoming("{{componentPrefix}}{{channelName}}{{componentSuffix}}")
-    public CompletionStage<Void> consume(Message<Object> message) {
-        Object payload = message.getPayload();
-        log.debug("Received message: {}", payload);
+    @Blocking
+    public CompletionStage<Void> consume(Message<String> message) {
         Map<String, Object> headers = headerMap(message);
         try {
-            Object unwrappedPayload = {{#if (hasEnterpriseEnvelope operations)}}unwrap(payload){{else}}payload{{/if}};
+            Object unwrappedPayload = deserialize(message.getPayload(), headers);
+            log.debug("Received message: {}", unwrappedPayload);
         {{~initVisited 'messageType'}}
         {{~#each operations as |operation|}}
             {{~#each (operationMessages operation.operationId) as |message|}}
@@ -73,6 +109,37 @@ public class {{consumerName (camelCase channelName)}} {
         }
     }
 
+    /**
+     * JSON text to the message type named by {@code __TypeId__}, or to the channel's only type.
+     * Unknown types become a Jackson tree for {@code defaultHandler}.
+     */
+    protected Object deserialize(String json, Map<String, Object> headers) throws JsonProcessingException {
+        if (json == null) {
+            return null;
+        }
+        {{~#if (hasEnterpriseEnvelope operations)}}
+        if (envelopeUnWrapper != null) {
+            return envelopeUnWrapper.unwrap(json, headers);
+        }
+        {{~/if}}
+        Class<?> type = messageType(headers.get(TYPE_ID_HEADER));
+        return type != null ? objectMapper.readValue(json, type) : objectMapper.readTree(json);
+    }
+
+    protected Class<?> messageType(Object typeId) {
+        if (typeId != null) {
+            String name = String.valueOf(typeId);
+            String simpleName = name.substring(name.lastIndexOf('.') + 1);
+            for (Class<?> type : MESSAGE_TYPES) {
+                if (type.getName().equals(name) || type.getSimpleName().equals(simpleName)) {
+                    return type;
+                }
+            }
+            return null;
+        }
+        return MESSAGE_TYPES.size() == 1 ? MESSAGE_TYPES.get(0) : null;
+    }
+
     private Map<String, Object> headerMap(Message<?> message) {
         Map<String, Object> headers = new HashMap<>();
         var metadata = message.getMetadata(IncomingKafkaRecordMetadata.class);
@@ -91,15 +158,9 @@ public class {{consumerName (camelCase channelName)}} {
     }
 
 {{~#if useEnterpriseEnvelope}}
-    protected Object unwrap(Object payload) {
-        if (envelopeUnWrapper != null) {
-            return envelopeUnWrapper.unwrap(payload);
-        }
-        return payload;
-    }
-
     public interface EnvelopeUnWrapper {
-        Object unwrap(Object payload);
+        /** JSON text of the envelope to the business payload. */
+        Object unwrap(String json, Map<String, Object> headers) throws JsonProcessingException;
     }
 {{/if}}
 }
