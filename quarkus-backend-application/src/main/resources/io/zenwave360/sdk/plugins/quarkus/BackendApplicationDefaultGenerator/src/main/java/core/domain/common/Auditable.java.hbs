@@ -1,0 +1,11 @@
+package {{layout.entitiesCommonPackage}};
+
+/**
+ * Implemented by {@code @auditing} entities. Called by {@link AuditingEntityListener}.
+ */
+public interface Auditable {
+
+    void markCreatedBy(String auditor);
+
+    void markLastModifiedBy(String auditor);
+}

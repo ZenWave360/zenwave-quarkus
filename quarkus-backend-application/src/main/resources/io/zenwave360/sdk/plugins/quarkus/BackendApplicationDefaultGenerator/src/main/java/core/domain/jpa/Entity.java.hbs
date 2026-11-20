@@ -11,6 +11,8 @@ import org.hibernate.annotations.CacheConcurrencyStrategy;
 {{~#if entity.options.auditing}}
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
+import {{layout.entitiesCommonPackage}}.Auditable;
+import {{layout.entitiesCommonPackage}}.AuditingEntityListener;
 {{~/if}}
 
 /**
@@ -27,8 +29,11 @@ import org.hibernate.annotations.UpdateTimestamp;
 @Table(name = "{{snakeCase entity.tableName}}")
 @Cache(usage = CacheConcurrencyStrategy.READ_WRITE)
 {{~/if}}
+{{~#if entity.options.auditing}}
+@EntityListeners(AuditingEntityListener.class)
+{{~/if}}
 {{annotate "domain.entity" entity.javaEntity entity}}
-public {{abstractClass entity}} class {{entity.className}} {{addExtends entity}} implements Serializable {
+public {{abstractClass entity}} class {{entity.className}} {{addExtends entity}} implements Serializable{{#if entity.options.auditing}}, Auditable{{/if}} {
 
     @java.io.Serial
     private static final long serialVersionUID = 1L;
@@ -250,6 +255,16 @@ public {{abstractClass entity}} class {{entity.className}} {{addExtends entity}}
     this.lastModifiedDate = lastModifiedDate;
     return this;
   }
+
+  @Override
+  public void markCreatedBy(String auditor) {
+    this.createdBy = auditor;
+  }
+
+  @Override
+  public void markLastModifiedBy(String auditor) {
+    this.lastModifiedBy = auditor;
+  }
 {{/if}}
 
 {{#unless (skipEntityId entity)~}}
@@ -269,6 +284,23 @@ public {{abstractClass entity}} class {{entity.className}} {{addExtends entity}}
   @Override
   public int hashCode() {
     return getClass().hashCode();
+  }
+{{~else}}
+  /* value object (no id): equal by value */
+  @Override
+  public boolean equals(Object o) {
+    if (this == o) {
+      return true;
+    }
+    if (!(o instanceof {{entity.className}} other)) {
+      return false;
+    }
+    return {{#if entity.fields}}{{#each entity.fields as |field|}}Objects.equals({{field.name}}, other.{{field.name}}){{#unless @last}} && {{/unless}}{{/each}}{{else}}true{{/if}};
+  }
+
+  @Override
+  public int hashCode() {
+    return Objects.hash({{#each entity.fields as |field|}}{{field.name}}{{#unless @last}}, {{/unless}}{{/each}});
   }
 {{~/unless}}
 }

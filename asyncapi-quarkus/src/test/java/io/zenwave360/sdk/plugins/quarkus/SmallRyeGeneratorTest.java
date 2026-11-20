@@ -74,6 +74,9 @@ class SmallRyeGeneratorTest {
         assertFalse(producerApi.contains("Emitter") || producerApi.contains("@Incoming"));
         assertFalse(consumerApi.contains("Emitter") || consumerApi.contains("@Incoming"));
         assertFalse(inMemory.contains("Emitter") || inMemory.contains("@Incoming"));
+        // not a CDI bean: must not compete with the SmallRye producer in @QuarkusTest
+        assertTrue(inMemory.contains("@Vetoed"));
+        assertFalse(inMemory.contains("@ApplicationScoped"));
         assertFalse(producer.contains("@Incoming"));
         assertFalse(consumer.contains("Emitter"));
     }

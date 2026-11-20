@@ -29,6 +29,10 @@ public class ServicesInMemoryConfig extends RepositoriesInMemoryConfig {
 {{#if (includeEmitEventsImplementation service)}}
     {{~#if (needsEventsProducer service)}}
     protected final EventsProducerInMemoryContext eventsProducerInMemoryContext = new EventsProducerInMemoryContext();
+
+    public EventsProducerInMemoryContext eventsProducerInMemoryContext() {
+        return eventsProducerInMemoryContext;
+    }
     {{~/if}}
 {{/if}}
 {{~#if (needsEventBus service)}}

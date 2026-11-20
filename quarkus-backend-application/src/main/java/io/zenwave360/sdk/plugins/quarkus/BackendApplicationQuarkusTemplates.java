@@ -95,6 +95,11 @@ public class BackendApplicationQuarkusTemplates extends ProjectTemplates {
         return true;
     };
 
+    protected Function<Map<String, Object>, Boolean> skipAuditing = (model) -> {
+        List auditing = JSONPath.get(model, "$.zdl.entities[*].options.auditing", List.of());
+        return auditing == null || auditing.isEmpty();
+    };
+
     protected Function<Map<String, Object>, Boolean> skipDataSql = (model) -> persistence != PersistenceType.jpa;
 
     protected Function<Map<String, Object>, Boolean> skipEvents = (model) -> !includeEmitEventsImplementation;
@@ -183,6 +188,12 @@ public class BackendApplicationQuarkusTemplates extends ProjectTemplates {
                 "{{asyncapiAdaptersModulePrefix}}src/main/java/" + layoutNames.adaptersEventsPackage + "/{{consumerServiceName}}.java",
                 JAVA).withSkipOverwrite(true));
 
+        this.addTemplate(this.singleTemplates, "src/main/java", "core/domain/common/Auditable.java",
+                layoutNames.entitiesCommonPackage, "Auditable.java", JAVA, skipAuditing, true);
+        this.addTemplate(this.singleTemplates, "src/main/java", "core/domain/common/AuditorProvider.java",
+                layoutNames.entitiesCommonPackage, "AuditorProvider.java", JAVA, skipAuditing, true);
+        this.addTemplate(this.singleTemplates, "src/main/java", "core/domain/common/AuditingEntityListener.java",
+                layoutNames.entitiesCommonPackage, "AuditingEntityListener.java", JAVA, skipAuditing, true);
         this.addTemplate(this.singleTemplates, "src/main/java", "core/implementation/mappers/BaseMapper.java",
                 layoutNames.coreImplementationMappersCommonPackage, "BaseMapper.java", JAVA, null, true);
         this.addTemplate(this.serviceTemplates, "src/main/java", "core/implementation/mappers/ServiceMapper.java",

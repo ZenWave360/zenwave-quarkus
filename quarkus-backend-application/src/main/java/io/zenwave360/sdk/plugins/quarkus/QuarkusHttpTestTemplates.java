@@ -57,7 +57,7 @@ public class QuarkusHttpTestTemplates extends SpringWebTestClientTemplates {
                 .withTemplateLocation(joinPath(templatesFolder, "BusinessFlowTest.java"))
                 .withTargetFile(joinPath("src/test/java", "{{asPackageFolder testsPackage}}/{{businessFlowTestName}}.java"))
                 .withMimeType(JAVA)
-                .withSkipOverwrite(false);
+                .withSkipOverwrite(true);
     }
 
     @Override
@@ -66,7 +66,7 @@ public class QuarkusHttpTestTemplates extends SpringWebTestClientTemplates {
                 .withTemplateLocation(joinPath(templatesFolder, "ServiceIT.java"))
                 .withTargetFile(joinPath("src/test/java", "{{asPackageFolder testsPackage}}/{{serviceName}}{{testSuffix}}.java"))
                 .withMimeType(JAVA)
-                .withSkipOverwrite(false);
+                .withSkipOverwrite(true);
     }
 
     @Override
@@ -75,6 +75,6 @@ public class QuarkusHttpTestTemplates extends SpringWebTestClientTemplates {
                 .withTemplateLocation(joinPath(templatesFolder, "OperationIT.java"))
                 .withTargetFile(joinPath("src/test/java", "{{asPackageFolder testsPackage}}/{{serviceName}}/{{asJavaTypeName operationId}}{{testSuffix}}.java"))
                 .withMimeType(JAVA)
-                .withSkipOverwrite(false);
+                .withSkipOverwrite(true);
     }
 }
