@@ -9,7 +9,7 @@ This repository is an example of a ZenWave backend customization that lives outs
 
 Build a Maven jar of Handlebars templates and helpers. The jar does not define its own plugin. Callers keep the official plugin and select the customization with the `templates` option, the same way the Kotlin module is selected with `new io.zenwave360.sdk.plugins.kotlin.BackendApplicationKotlinTemplates`.
 
-Dependencies follow that module. They are `provided`, and the version is `${project.version}` from the SDK customization parent (`2.8.0-SNAPSHOT`). The Kotlin module depends on:
+Dependencies follow that module. They are `provided`, and the version is `${project.version}` from the SDK customization parent (`2.9.0-SNAPSHOT`). The Kotlin module depends on:
 
 - `io.zenwave360.sdk.plugins:backend-application-default`
 - `io.zenwave360.sdk.plugins:openapi-controllers`

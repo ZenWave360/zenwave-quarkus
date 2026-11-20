@@ -8,7 +8,7 @@ Design: `docs/001-target-stack.md` and `docs/quarkus-customization.md`.
 
 ## parent
 
-- [x] Reactor `pom.xml` with dependency management for SDK `2.8.0-SNAPSHOT` and the module list: `test-resources`, `quarkus-backend-application`, `asyncapi-quarkus`, `e2e`.
+- [x] Reactor `pom.xml` with dependency management for SDK `2.9.0-SNAPSHOT` and the module list: `test-resources`, `quarkus-backend-application`, `asyncapi-quarkus`, `e2e`.
 
 ## test-resources
 
