@@ -72,7 +72,8 @@ Imperative JPA only. Paths sit under the layout package the official templates a
 | `<base>/ServicesInMemoryConfig.java` | once |
 | `<base>/InMemoryJpaRepository.java` | once |
 | `<base>/{{entity.className}}RepositoryInMemory.java` | each entity |
-| `<base>/BaseRepositoryIntegrationTest.java` | once |
+| `<base>/Auditable.java`, `AuditorProvider.java`, `AuditingEntityListener.java` | once, any `@auditing` entity (entities common package) |
+| `<base>/BaseRepositoryIntegrationTest.java` | once, `@QuarkusTest` + `@TestTransaction` |
 | `<base>/{{entity.className}}RepositoryIntegrationTest.java` | each entity |
 | `<base>/TestDataLoader.java` | once |
 | `<base>/DockerComposeInitializer.java` | once |
@@ -133,7 +134,7 @@ Application service implementation: `@ApplicationScoped` and `jakarta.transactio
 
 Inbound service: a plain Java interface.
 
-Entity: Jakarta Persistence `@Entity` in the domain package, same placement as the official JPA entity template. Auditing annotations, when the model asks for them, are Jakarta Persistence or Hibernate annotations. Getters and setters are explicit. Lombok stays off.
+Entity: Jakarta Persistence `@Entity` in the domain package, same placement as the official JPA entity template. Auditing (`@auditing`): Hibernate `@CreationTimestamp` / `@UpdateTimestamp` for dates; `@EntityListeners(AuditingEntityListener.class)` and `implements Auditable` for `createdBy` / `lastModifiedBy`. The listener resolves an `AuditorProvider` CDI bean (application-supplied, e.g. from `SecurityIdentity`) and falls back to `system`. No reflection, so native builds need no registration. Types without an id (`@json`, `@embedded`) get value `equals` / `hashCode`. Getters and setters are explicit. Lombok stays off.
 
 Repository port: finder and save operations the service partials call. Repository implementation: `@ApplicationScoped`, `EntityManager`.
 
@@ -145,7 +146,7 @@ JAX-RS resource: `@ApplicationScoped`, `@Path`, verb annotations, constructor in
 
 HTTP tests: `@QuarkusTest`, `@TestHTTPResource` as a `URI`, `@TestHTTPEndpoint` when the generated resource class is known, and `java.net.http.HttpClient`. The base class is `BaseQuarkusHttpTest` and holds the client. Service and operation tests set `@TestHTTPEndpoint` to the generated `*ApiController`. One class per REST resource. One test method per OpenAPI operation. The templates emit Java.
 
-SmallRye producer: `@ApplicationScoped`, constructor-injected `Emitter` and `@Channel`, implementing the shared producer interface. `@Channel` and `@Incoming` use the AsyncAPI channel name. The producer sends a `Message` and waits on that message's acknowledgement, because `Emitter.send(Message)` returns void, then returns the shared `boolean`. `kafka_messageKey` becomes the Kafka record key through `OutgoingKafkaRecordMetadata`. Other headers become Kafka headers. SmallRye consumer: `@Incoming` inside `{{consumerName}}.java`, taking a MicroProfile `Message`, dispatching with `instanceof` to the shared consumer service interface, and acknowledging that message. The record key is stored as `kafka_receivedMessageKey`, which the shared headers getter already reads. The in-memory producer is `@ApplicationScoped` with a public no-arg constructor, so `EventsProducerInMemoryContext` can still construct it with `new`. It stores payload and headers in `CapturedMessage` and keeps `getCapturedMessages`. Avro payloads are the Java type the model already declares. Schema Registry stays connector configuration.
+SmallRye producer: `@ApplicationScoped`, constructor-injected `Emitter` and `@Channel`, implementing the shared producer interface. `@Channel` and `@Incoming` use the AsyncAPI channel name. The producer sends a `Message` and waits on that message's acknowledgement, because `Emitter.send(Message)` returns void, then returns the shared `boolean`. `kafka_messageKey` becomes the Kafka record key through `OutgoingKafkaRecordMetadata`. Other headers become Kafka headers. SmallRye consumer: `@Incoming` inside `{{consumerName}}.java`, taking a MicroProfile `Message`, dispatching with `instanceof` to the shared consumer service interface, and acknowledging that message. The record key is stored as `kafka_receivedMessageKey`, which the shared headers getter already reads. The in-memory producer is a plain `@Vetoed` class with a public no-arg constructor: `EventsProducerInMemoryContext` constructs it with `new`, and it never competes with the SmallRye producer bean in `@QuarkusTest`. It stores payload and headers in `CapturedMessage` and keeps `getCapturedMessages`. Avro payloads are the Java type the model already declares. Schema Registry stays connector configuration.
 
 Business and application code stays imperative. Method signatures do not use Mutiny (`Uni`, `Multi`), Reactor (`Mono`, `Flux`), Spring Data (`Page`, `Pageable`), or `Optional`. A paginated operation takes `int page, int size` and returns `List`. A method the model marks optional returns the value or null. `findById` returns the entity or null. A natural-id finder on the repository port returns `Optional`, and the service calls `.orElse(null)`.
 

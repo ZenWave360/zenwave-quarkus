@@ -30,6 +30,7 @@ Future customizations copy this section and add their own target section.
 | `quarkus-backend-application` | Java customization: backend, OpenAPI controllers, and HTTP tests. |
 | `asyncapi-quarkus` | SmallRye templates for `AsyncAPIGenerator`. The Kotlin customization has no equivalent. |
 | `e2e` | Checked-in Quarkus project. Same shape as [`../zenwave-sdk/e2e`](../zenwave-sdk/e2e). |
+| `playground/` | Standalone Quarkus apps (not reactor modules) generated with `zenwave-sdk-maven-plugin` and finished by hand. `order-fulfillment-quarkus` is the candidate replacement for the e2e scaffold. |
 
 `test-resources` puts the models on the classpath:
 

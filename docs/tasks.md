@@ -37,3 +37,15 @@ Design: `docs/001-target-stack.md` and `docs/quarkus-customization.md`.
 
 - [x] Checked-in Quarkus scaffold under `e2e/src/test/resources/projects/`, skipped in the normal reactor build the way [`../zenwave-sdk/e2e`](../zenwave-sdk/e2e) uses `e2e.tests.skip`.
 - [x] E2E test copies the scaffold to `target/projects/`, runs the backend, OpenAPI controllers, HTTP tests, and AsyncAPI plugins with the Quarkus templates, then `MavenCompiler.compile` on the copy.
+
+## playground
+
+- [x] `playground/order-fulfillment-quarkus`: `quarkus create` 3.40.1 app, generated via `zenwave-sdk-maven-plugin` (profile `zenwave`), Dev Services tests green (`mvn verify -DskipITs=false`).
+- [x] Template fixes found by the playground: natural-id finder impl, `@TestTransaction` repository ITs, business-flow var names, `@Vetoed` in-memory producer, auditing, value-object equality.
+- [x] Remove leftover Kotlin templates; `NoKotlinTemplatesTest` guards it.
+- [ ] Move the playground into `e2e/src/test/resources/projects/` and migrate `customer-address-relational` to the same scaffold.
+- [ ] Fix upstream `GeneratorMojo`: `.zdl` inputSpec double `file:` URI; `zdlFiles` not seen as `zdlFile` by `OpenAPIControllersPlugin`. Drop playground workarounds after.
+- [ ] Flyway migrations (prod uses `schema-management.strategy=validate`).
+- [ ] JAX-RS exception mappers as generated (or documented) output, now hand-written in the playground.
+- [ ] Scaffold quality: `ServiceMapper` comments (`PayOrderInputnull-Order`), `ZDLToOpenAPI` examples ignore `maxLength`, `data.sql` is an LLM prompt, not SQL.
+- [ ] ArchUnit 1.4.1 engine fails on the Quarkus 3.40 JUnit platform; e2e scaffold still declares it.
