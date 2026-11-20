@@ -15,6 +15,7 @@
         <maven.compiler.release>17</maven.compiler.release>
         <zenwave-sdk.version>2.9.0-SNAPSHOT</zenwave-sdk.version>
         <junit.version>5.10.1</junit.version>
+        <jacoco.version>0.8.14</jacoco.version>
         <surefire.argLine>
             --add-exports jdk.compiler/com.sun.tools.javac.api=ALL-UNNAMED
             --add-exports jdk.compiler/com.sun.tools.javac.file=ALL-UNNAMED
@@ -26,11 +27,10 @@
 
     <repositories>
         <repository>
-            <id>maven-snapshots</id>
-            <snapshots>
-                <enabled>true</enabled>
-            </snapshots>
-            <url>https://central.sonatype.com/repository/maven-snapshots</url>
+            <id>zenwave-snapshots</id>
+            <releases><enabled>false</enabled></releases>
+            <snapshots><enabled>true</enabled></snapshots>
+            <url>https://www.zenwave360.io/maven-snapshots/</url>
         </repository>
     </repositories>
 
@@ -107,8 +107,45 @@
             <plugin>
                 <artifactId>maven-surefire-plugin</artifactId>
                 <configuration>
-                    <argLine>${surefire.argLine}</argLine>
+                    <argLine>${jacoco.argLine} ${surefire.argLine}</argLine>
                 </configuration>
+            </plugin>
+            <plugin>
+                <groupId>org.jacoco</groupId>
+                <artifactId>jacoco-maven-plugin</artifactId>
+                <version>${jacoco.version}</version>
+                <configuration>
+                    <propertyName>jacoco.argLine</propertyName>
+                </configuration>
+                <executions>
+                    <execution>
+                        <id>prepare-agent</id>
+                        <goals><goal>prepare-agent</goal></goals>
+                    </execution>
+                    <execution>
+                        <id>report</id>
+                        <phase>test</phase>
+                        <goals><goal>report</goal></goals>
+                    </execution>
+                </executions>
+            </plugin>
+            <plugin>
+                <!-- CI (ZenWave360/release-workflows) runs enforcer:enforce@enforce-snapshot-version before publishing -->
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-enforcer-plugin</artifactId>
+                <version>3.5.0</version>
+                <executions>
+                    <execution>
+                        <id>enforce-snapshot-version</id>
+                        <configuration>
+                            <rules>
+                                <requireSnapshotVersion>
+                                    <failWhenParentIsRelease>false</failWhenParentIsRelease>
+                                </requireSnapshotVersion>
+                            </rules>
+                        </configuration>
+                    </execution>
+                </executions>
             </plugin>
         </plugins>
     </build>

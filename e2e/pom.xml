@@ -13,6 +13,7 @@
     <properties>
         <e2e.tests.skip>true</e2e.tests.skip>
         <skipTests>${e2e.tests.skip}</skipTests>
+        <git-publisher.skip>true</git-publisher.skip>
     </properties>
 
     <dependencies>

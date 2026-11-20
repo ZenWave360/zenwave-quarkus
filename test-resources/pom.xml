@@ -9,4 +9,9 @@
     <name>${project.groupId}:${project.artifactId}</name>
     <artifactId>test-resources</artifactId>
     <packaging>jar</packaging>
+
+    <properties>
+        <!-- test fixtures only, never published -->
+        <git-publisher.skip>true</git-publisher.skip>
+    </properties>
 </project>

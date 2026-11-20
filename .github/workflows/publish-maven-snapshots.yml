@@ -1,0 +1,34 @@
+name: Build and Publish Snapshots
+
+# Push to main builds, tests and publishes the SNAPSHOT jars to zenwave360/maven-snapshots
+# (served at https://www.zenwave360.io/maven-snapshots/). test-resources and e2e set git-publisher.skip.
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: maven-snapshots-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  publish-snapshot:
+    # Same reusable workflow and ref as zenwave-sdk; back to @main once git snapshots are merged there.
+    uses: ZenWave360/release-workflows/.github/workflows/publish-snapshots-maven.yml@feature/git-snapshots
+    with:
+      java-version: "21"
+      develop-branch: main
+      publish-snapshots: false
+      publish-git-snapshots: true
+      jacoco-csv-files: >
+        ./quarkus-backend-application/target/site/jacoco/jacoco.csv
+        ./asyncapi-quarkus/target/site/jacoco/jacoco.csv
+    secrets:
+      CENTRAL_USERNAME: ${{ secrets.CENTRAL_USERNAME }}
+      CENTRAL_TOKEN: ${{ secrets.CENTRAL_TOKEN }}
+      SIGN_KEY: ${{ secrets.SIGN_KEY }}
+      SIGN_KEY_PASS: ${{ secrets.SIGN_KEY_PASS }}
+      GIT_PUBLISHER_TOKEN: ${{ secrets.GIT_PUBLISHER_TOKEN }}

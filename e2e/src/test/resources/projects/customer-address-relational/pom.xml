@@ -53,18 +53,18 @@
 
     <repositories>
         <repository>
-            <id>maven-snapshots</id>
+            <id>zenwave-snapshots</id>
             <snapshots><enabled>true</enabled></snapshots>
             <releases><enabled>false</enabled></releases>
-            <url>https://central.sonatype.com/repository/maven-snapshots</url>
+            <url>https://www.zenwave360.io/maven-snapshots/</url>
         </repository>
     </repositories>
     <pluginRepositories>
         <pluginRepository>
-            <id>maven-snapshots</id>
+            <id>zenwave-snapshots</id>
             <snapshots><enabled>true</enabled></snapshots>
             <releases><enabled>false</enabled></releases>
-            <url>https://central.sonatype.com/repository/maven-snapshots</url>
+            <url>https://www.zenwave360.io/maven-snapshots/</url>
         </pluginRepository>
     </pluginRepositories>
 
