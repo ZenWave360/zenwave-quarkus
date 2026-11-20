@@ -15,12 +15,14 @@ Last synced: zenwave-sdk `develop` at `41bbb4aa` (2026-11-20). After a port, upd
 | SDK surface | Used by | Stability | What a change breaks |
 |---|---|---|---|
 | `templates` option (`new <class>` or a class name) | all modules | Documented | Template selection |
-| `ProjectTemplates`: protected template lists (`aggregateTemplates`, `entityTemplates`, `enumTemplates`, `allDomainEventsTemplates`, `singleTemplates`, …), `addTemplate(…)`, `setTemplatesFolder`, `layout`, `is(model, …)`, `getTemplateHelpers`, `shouldGenerateListeners()` | `BackendApplicationQuarkusTemplates`, `OpenAPIControllersQuarkusTemplates` | Internal | Compile error, or silently missing or extra files when a list is renamed or split |
+| `ProjectTemplates`: public mutable template lists (`aggregateTemplates`, `entityTemplates`, `enumTemplates`, `allDomainEventsTemplates`, `singleTemplates`, …), `addTemplate(…)`, `setTemplatesFolder`, `layout`, `is(model, …)`, `getTemplateHelpers`, `shouldGenerateListeners()` | `BackendApplicationQuarkusTemplates`, `OpenAPIControllersQuarkusTemplates` | Internal | Compile error, or silently missing or extra files when a list is renamed or split |
 | `SpringWebTestClientTemplates` overridable methods (`partialTemplate`, `baseTestClassTemplate`, `businessFlowTestTemplate`, `serviceTestTemplate`, `operationTestTemplate`), `SpringWebTestClientGenerator.openApiModelNamePrefix/Suffix` | `QuarkusHttpTestTemplates` | Internal | Compile error; Spring templates generated instead of Quarkus |
 | `AbstractAsyncapiGenerator.Templates`: `producerTemplates`, `producerByServiceTemplates`, `consumerByChannelTemplates`, `addTemplate`; `generator.getTemplateEngine()` cast to `HandlebarsEngine`; `AsyncAPIHandlebarsHelpers` | `SmallRyeTemplates` | Internal | Compile error; missing producer or consumer |
 | Classpath folder `io/zenwave360/sdk/plugins/AsyncAPIGenerator`: our `smallrye/` templates sit next to the upstream `shared/` interface templates (`IProducer`, `IServiceByChannel`, `EventsProducerInMemoryContext`), which we reuse | `asyncapi-quarkus` | Internal | Missing interface files, or interfaces that no longer match our implementations |
 | Unknown options passed through to the template model (`Generator.additionalProperties`) | `producerImplementationPackage` | Internal | The option is ignored and the producer is generated in `producerApiPackage` |
 | About 100 upstream Handlebars helpers (`wrapWithMapper`, `isCrudMethod`, `mapperInputCallSignature`, `findAggregateCommandsForMethod`, `aggregateTransitionsClassName`, `runtimeHeadersMap`, `producerInterfaceName`, …). `singleTransitionTo` and `transitionTargets` only exist since 2.9.0-SNAPSHOT | all templates | Internal | Render-time error `could not find helper`, or different output |
+| Helper registration order: a customization helper with the same name as an upstream one wins (`javaType`, `methodParametersSignature` in `BackendApplicationQuarkusHelpers`) | `*Helpers.java` | Internal, implicit | An upstream rename leaves our override dead, or upstream starts shadowing a name, without warning |
+| Option binding onto public fields of the Templates class (`persistence`, `style`, `useJMolecules`, `implementEventListeners`, …) | `BackendApplicationQuarkusTemplates` | Internal | Field silently keeps its default |
 | `CustomHandlebarsHelpers.partial`: partials resolve relative to the including template's file | all templates | Internal | Partials not found |
 | ZDL model keys: `zdl.allEntitiesAndEnums`, `aggregate.lifecycle`, `method.transition.from/to`, `aggregateCommandsForMethod`, `method.returnTypeIsArray`, `listenerGroup.mapperBindings`, `binding.*`, `operation.adapterPlan.reason`, … | templates, `skip*` functions | Internal | Silently empty output. Handlebars renders a missing key as blank |
 | `ZDLJavaSignatureUtils`, `ZDLFindUtils`, `ZDLHttpUtils`, `JSONPath`, `CleanHexagonalProjectLayout`, `ProjectLayout`, `BackendApplicationDefaultGenerator.getIdJavaType()` | `*Helpers.java`, `*Templates.java` | Internal | Compile error, or different Java signatures |
@@ -45,7 +47,7 @@ Last synced: zenwave-sdk `develop` at `41bbb4aa` (2026-11-20). After a port, upd
 
 These are proposals for the SDK. They would make an external customization depend only on documented API:
 
-- **A public, versioned `Templates` API:** named template slots, for example `slot("entity").replace(location)`, instead of protected lists.
+- **A public, versioned `Templates` API:** named template slots, for example `slot("entity").replace(location)`, instead of public mutable lists.
 - **Documented model keys and helpers:** a published list per plugin, with deprecation before removal.
 - **Strict rendering:** fail on a missing helper or a missing model key in tests, so silent blanks become errors.
 - **Public producer contract:** make `_runtimeheaders` public, or expose runtime headers through a helper.

@@ -159,7 +159,7 @@ The e2e projects run Kafka and the database through Quarkus Dev Services (Testco
 
 ## SDK coupling
 
-The `templates` option is the only documented extension point. This project also depends on SDK internals: protected template lists, upstream Handlebars helpers, ZDL model keys and utility classes. Any of these can change between SDK snapshots.
+The `templates` option is the only documented extension point. This project also depends on SDK internals: template lists, helper overriding by name, upstream Handlebars helpers, ZDL model keys and utility classes. Any of these can change between SDK snapshots.
 
 All templates are kept as local copies, even the ones identical to upstream, so the output is easy to read in one place. Upstream fixes are ported by hand. Last synced: zenwave-sdk `develop` at `41bbb4aa` (2026-11-20).
 
