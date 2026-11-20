@@ -1,31 +1,77 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
-
+    <!-- Standalone project, not a reactor module. Created with quarkus-maven-plugin:3.40.1:create. -->
     <groupId>io.example</groupId>
     <artifactId>customer-address-relational</artifactId>
     <version>0.0.1-SNAPSHOT</version>
-    <name>customer-address-relational</name>
+    <packaging>quarkus</packaging>
+    <name>Customer Address Relational (Quarkus)</name>
 
     <properties>
-        <!-- Quarkus 3.40.1 LTS. Testcontainers 2.0.5 is managed by this BOM. -->
-        <quarkus.version>3.40.1</quarkus.version>
-        <!-- MapStruct is not part of the Quarkus BOM. -->
-        <mapstruct.version>1.6.3</mapstruct.version>
-        <archunit.version>1.4.1</archunit.version>
         <maven.compiler.release>21</maven.compiler.release>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-        <!-- The empty scaffold has no OpenAPI file. The e2e test turns this off after it writes one. -->
-        <openapi.skip>true</openapi.skip>
+        <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
+        <compiler-plugin.version>3.15.0</compiler-plugin.version>
+        <surefire-plugin.version>3.5.6</surefire-plugin.version>
+        <skipITs>true</skipITs>
+
+        <quarkus.platform.artifact-id>quarkus-bom</quarkus.platform.artifact-id>
+        <quarkus.platform.group-id>io.quarkus.platform</quarkus.platform.group-id>
+        <quarkus.platform.version>3.40.1.2</quarkus.platform.version>
+
+        <!-- not in the Quarkus BOM -->
+        <mapstruct.version>1.6.3</mapstruct.version>
         <openapi-generator.version>7.18.0</openapi-generator.version>
+        <archunit.version>1.5.1</archunit.version>
+
+        <!-- zenwave sdk + this repo's customizations (mvn install from repo root first) -->
+        <zenwave.version>2.9.0-SNAPSHOT</zenwave.version>
+        <zenwave-quarkus.version>2.9.0-SNAPSHOT</zenwave-quarkus.version>
+        <!-- -Dzenwave.forceOverwrite=true to regenerate files that already exist in src/ -->
+        <zenwave.forceOverwrite>false</zenwave.forceOverwrite>
+
+        <zdlFile>${project.basedir}/zenwave-model.zdl</zdlFile>
+        <!-- zdlFile is passed in configOptions only (the mojo's own zdlFile/zdlFiles params map to deprecated zdlFiles).
+             inputSpec is required by the mojo: ZDL-only plugins get a non-.zdl placeholder they do not read. -->
+        <zdl.inputSpec.workaround>zdl-only</zdl.inputSpec.workaround>
+        <databaseType>postgresql</databaseType>
+        <openapi.inputSpec>${project.basedir}/src/main/resources/public/apis/openapi.yml</openapi.inputSpec>
+        <asyncapi.inputSpec>${project.basedir}/src/main/resources/public/apis/asyncapi.yml</asyncapi.inputSpec>
+
+        <!-- must match zenwave-model.zdl config -->
+        <!-- CleanHexagonalProjectLayout packages (zenwave-model.zdl has no layout override) -->
+        <basePackage>io.example.orders</basePackage>
+        <openApiApiPackage>${basePackage}.adapters.web</openApiApiPackage>
+        <openApiModelPackage>${basePackage}.adapters.web.dtos</openApiModelPackage>
+        <asyncApiModelPackage>${basePackage}.core.outbound.events.dtos</asyncApiModelPackage>
+        <asyncApiProducerApiPackage>${basePackage}.core.outbound.events</asyncApiProducerApiPackage>
+        <asyncApiConsumerApiPackage>${basePackage}.adapters.commands</asyncApiConsumerApiPackage>
     </properties>
+
+    <repositories>
+        <repository>
+            <id>maven-snapshots</id>
+            <snapshots><enabled>true</enabled></snapshots>
+            <releases><enabled>false</enabled></releases>
+            <url>https://central.sonatype.com/repository/maven-snapshots</url>
+        </repository>
+    </repositories>
+    <pluginRepositories>
+        <pluginRepository>
+            <id>maven-snapshots</id>
+            <snapshots><enabled>true</enabled></snapshots>
+            <releases><enabled>false</enabled></releases>
+            <url>https://central.sonatype.com/repository/maven-snapshots</url>
+        </pluginRepository>
+    </pluginRepositories>
 
     <dependencyManagement>
         <dependencies>
             <dependency>
-                <groupId>io.quarkus.platform</groupId>
-                <artifactId>quarkus-bom</artifactId>
-                <version>${quarkus.version}</version>
+                <groupId>${quarkus.platform.group-id}</groupId>
+                <artifactId>${quarkus.platform.artifact-id}</artifactId>
+                <version>${quarkus.platform.version}</version>
                 <type>pom</type>
                 <scope>import</scope>
             </dependency>
@@ -33,6 +79,10 @@
     </dependencyManagement>
 
     <dependencies>
+        <dependency>
+            <groupId>io.quarkus</groupId>
+            <artifactId>quarkus-arc</artifactId>
+        </dependency>
         <dependency>
             <groupId>io.quarkus</groupId>
             <artifactId>quarkus-rest</artifactId>
@@ -43,11 +93,15 @@
         </dependency>
         <dependency>
             <groupId>io.quarkus</groupId>
-            <artifactId>quarkus-hibernate-orm</artifactId>
+            <artifactId>quarkus-smallrye-health</artifactId>
         </dependency>
         <dependency>
             <groupId>io.quarkus</groupId>
-            <artifactId>quarkus-jdbc-postgresql</artifactId>
+            <artifactId>quarkus-smallrye-openapi</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>io.quarkus</groupId>
+            <artifactId>quarkus-hibernate-orm</artifactId>
         </dependency>
         <dependency>
             <groupId>io.quarkus</groupId>
@@ -55,22 +109,31 @@
         </dependency>
         <dependency>
             <groupId>io.quarkus</groupId>
+            <artifactId>quarkus-jdbc-postgresql</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>io.quarkus</groupId>
             <artifactId>quarkus-messaging-kafka</artifactId>
+        </dependency>
+        <!-- prod schema: Flyway migrations in src/main/resources/db/migration -->
+        <dependency>
+            <groupId>io.quarkus</groupId>
+            <artifactId>quarkus-flyway</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.flywaydb</groupId>
+            <artifactId>flyway-database-postgresql</artifactId>
         </dependency>
         <dependency>
             <groupId>org.mapstruct</groupId>
             <artifactId>mapstruct</artifactId>
             <version>${mapstruct.version}</version>
         </dependency>
-        <dependency>
-            <groupId>org.mapstruct</groupId>
-            <artifactId>mapstruct-processor</artifactId>
-            <version>${mapstruct.version}</version>
-            <scope>provided</scope>
-        </dependency>
+
+        <!-- test -->
         <dependency>
             <groupId>io.quarkus</groupId>
-            <artifactId>quarkus-junit5</artifactId>
+            <artifactId>quarkus-junit</artifactId>
             <scope>test</scope>
         </dependency>
         <dependency>
@@ -93,6 +156,7 @@
 
     <build>
         <plugins>
+            <!-- OpenAPI DTOs (models only). Controllers are generated by ZenWave with Quarkus templates. -->
             <plugin>
                 <groupId>org.openapitools</groupId>
                 <artifactId>openapi-generator-maven-plugin</artifactId>
@@ -105,12 +169,13 @@
                             <goal>generate</goal>
                         </goals>
                         <configuration>
-                            <skip>${openapi.skip}</skip>
-                            <inputSpec>${project.basedir}/src/main/resources/apis/openapi.yml</inputSpec>
+                            <inputSpec>${openapi.inputSpec}</inputSpec>
+                            <skipIfSpecIsUnchanged>true</skipIfSpecIsUnchanged>
                             <generatorName>spring</generatorName>
                             <output>${project.build.directory}/generated-sources/openapi</output>
-                            <modelPackage>io.example.orders.adapters.web.dtos</modelPackage>
+                            <modelPackage>${openApiModelPackage}</modelPackage>
                             <modelNameSuffix>DTO</modelNameSuffix>
+                            <typeMappings>double=BigDecimal</typeMappings>
                             <generateApis>false</generateApis>
                             <generateModels>true</generateModels>
                             <generateSupportingFiles>false</generateSupportingFiles>
@@ -127,7 +192,6 @@
                                 <reactive>false</reactive>
                                 <skipDefaultInterface>true</skipDefaultInterface>
                             </configOptions>
-                            <!-- Spring marks optional fields with org.springframework.lang.Nullable. Quarkus already has jakarta.annotation.Nullable. -->
                             <importMappings>
                                 <importMapping>Nullable=jakarta.annotation.Nullable</importMapping>
                             </importMappings>
@@ -135,29 +199,271 @@
                     </execution>
                 </executions>
             </plugin>
+            <!-- AsyncAPI producer/consumer with SmallRye templates, regenerated on every build into target/ -->
             <plugin>
-                <groupId>io.quarkus.platform</groupId>
-                <artifactId>quarkus-maven-plugin</artifactId>
-                <version>${quarkus.version}</version>
-                <extensions>true</extensions>
+                <groupId>io.zenwave360.sdk</groupId>
+                <artifactId>zenwave-sdk-maven-plugin</artifactId>
+                <version>${zenwave.version}</version>
                 <executions>
                     <execution>
+                        <id>generate-asyncapi</id>
+                        <phase>generate-sources</phase>
                         <goals>
-                            <goal>build</goal>
-                            <goal>generate-code</goal>
-                            <goal>generate-code-tests</goal>
+                            <goal>generate</goal>
                         </goals>
+                        <configuration>
+                            <generatorName>AsyncAPIGenerator</generatorName>
+                            <inputSpec>${asyncapi.inputSpec}</inputSpec>
+                            <addCompileSourceRoot>true</addCompileSourceRoot>
+                            <addTestCompileSourceRoot>true</addTestCompileSourceRoot>
+                            <configOptions>
+                                <role>provider</role>
+                                <templates>io.zenwave360.sdk.plugins.quarkus.SmallRyeTemplates</templates>
+                                <modelPackage>${asyncApiModelPackage}</modelPackage>
+                                <producerApiPackage>${asyncApiProducerApiPackage}</producerApiPackage>
+                                <consumerApiPackage>${asyncApiConsumerApiPackage}</consumerApiPackage>
+                                <jsonschema2pojo.isUseJakartaValidation>true</jsonschema2pojo.isUseJakartaValidation>
+                                <jsonschema2pojo.useLongIntegers>true</jsonschema2pojo.useLongIntegers>
+                                <jsonschema2pojo.includeAdditionalProperties>true</jsonschema2pojo.includeAdditionalProperties>
+                                <haltOnFailFormatting>false</haltOnFailFormatting>
+                            </configOptions>
+                        </configuration>
                     </execution>
                 </executions>
+                <dependencies>
+                    <dependency>
+                        <groupId>io.zenwave360.sdk.plugins</groupId>
+                        <artifactId>asyncapi-generator</artifactId>
+                        <version>${zenwave.version}</version>
+                    </dependency>
+                    <dependency>
+                        <groupId>io.zenwave360.sdk</groupId>
+                        <artifactId>asyncapi-quarkus</artifactId>
+                        <version>${zenwave-quarkus.version}</version>
+                    </dependency>
+                </dependencies>
+            </plugin>
+            <plugin>
+                <groupId>${quarkus.platform.group-id}</groupId>
+                <artifactId>quarkus-maven-plugin</artifactId>
+                <version>${quarkus.platform.version}</version>
+                <extensions>true</extensions>
             </plugin>
             <plugin>
                 <artifactId>maven-compiler-plugin</artifactId>
-                <version>3.14.0</version>
+                <version>${compiler-plugin.version}</version>
                 <configuration>
                     <release>${maven.compiler.release}</release>
                     <parameters>true</parameters>
+                    <annotationProcessorPaths>
+                        <path>
+                            <groupId>org.mapstruct</groupId>
+                            <artifactId>mapstruct-processor</artifactId>
+                            <version>${mapstruct.version}</version>
+                        </path>
+                    </annotationProcessorPaths>
+                </configuration>
+            </plugin>
+            <plugin>
+                <artifactId>maven-surefire-plugin</artifactId>
+                <version>${surefire-plugin.version}</version>
+                <configuration>
+                    <argLine>@{argLine}</argLine>
+                    <systemPropertyVariables>
+                        <java.util.logging.manager>org.jboss.logmanager.LogManager</java.util.logging.manager>
+                        <maven.home>${maven.home}</maven.home>
+                    </systemPropertyVariables>
+                </configuration>
+            </plugin>
+            <plugin>
+                <artifactId>maven-failsafe-plugin</artifactId>
+                <version>${surefire-plugin.version}</version>
+                <executions>
+                    <execution>
+                        <goals>
+                            <goal>integration-test</goal>
+                            <goal>verify</goal>
+                        </goals>
+                    </execution>
+                </executions>
+                <configuration>
+                    <argLine>@{argLine}</argLine>
+                    <systemPropertyVariables>
+                        <native.image.path>${project.build.directory}/${project.build.finalName}-runner</native.image.path>
+                        <java.util.logging.manager>org.jboss.logmanager.LogManager</java.util.logging.manager>
+                        <maven.home>${maven.home}</maven.home>
+                    </systemPropertyVariables>
                 </configuration>
             </plugin>
         </plugins>
     </build>
+
+    <profiles>
+        <!--
+            mvn -Pzenwave generate-sources [-Dzenwave.forceOverwrite=true]
+            Writes specs + backend + JAX-RS controllers + HTTP tests into src/ with this repo's Quarkus templates.
+            Runs at 'initialize' so the specs exist before openapi/asyncapi generation in 'generate-sources'.
+        -->
+        <profile>
+            <id>zenwave</id>
+            <build>
+                <plugins>
+                    <plugin>
+                        <groupId>io.zenwave360.sdk</groupId>
+                        <artifactId>zenwave-sdk-maven-plugin</artifactId>
+                        <version>${zenwave.version}</version>
+                        <executions>
+                            <execution>
+                                <id>zdl-to-openapi</id>
+                                <phase>initialize</phase>
+                                <goals><goal>generate</goal></goals>
+                                <configuration>
+                                    <generatorName>ZDLToOpenAPIPlugin</generatorName>
+                                    <inputSpec>${zdl.inputSpec.workaround}</inputSpec>
+                                    <targetFolder>${project.basedir}</targetFolder>
+                                    <addCompileSourceRoot>false</addCompileSourceRoot>
+                                    <configOptions>
+                                        <zdlFile>${zdlFile}</zdlFile>
+                                        <idType>integer</idType>
+                                        <idTypeFormat>int64</idTypeFormat>
+                                        <targetFile>src/main/resources/public/apis/openapi.yml</targetFile>
+                                    </configOptions>
+                                </configuration>
+                            </execution>
+                            <execution>
+                                <id>zdl-to-asyncapi</id>
+                                <phase>initialize</phase>
+                                <goals><goal>generate</goal></goals>
+                                <configuration>
+                                    <generatorName>ZDLToAsyncAPIPlugin</generatorName>
+                                    <inputSpec>${zdl.inputSpec.workaround}</inputSpec>
+                                    <targetFolder>${project.basedir}</targetFolder>
+                                    <addCompileSourceRoot>false</addCompileSourceRoot>
+                                    <configOptions>
+                                        <zdlFile>${zdlFile}</zdlFile>
+                                        <asyncapiVersion>v3</asyncapiVersion>
+                                        <idType>integer</idType>
+                                        <idTypeFormat>int64</idTypeFormat>
+                                        <targetFile>src/main/resources/public/apis/asyncapi.yml</targetFile>
+                                        <includeCloudEventsHeaders>true</includeCloudEventsHeaders>
+                                        <includeKafkaCommonHeaders>true</includeKafkaCommonHeaders>
+                                    </configOptions>
+                                </configuration>
+                            </execution>
+                            <execution>
+                                <id>backend-application</id>
+                                <phase>initialize</phase>
+                                <goals><goal>generate</goal></goals>
+                                <configuration>
+                                    <generatorName>BackendApplicationDefaultPlugin</generatorName>
+                                    <inputSpec>${zdl.inputSpec.workaround}</inputSpec>
+                                    <targetFolder>${project.basedir}</targetFolder>
+                                    <addCompileSourceRoot>false</addCompileSourceRoot>
+                                    <configOptions>
+                                        <zdlFile>${zdlFile}</zdlFile>
+                                        <templates>new io.zenwave360.sdk.plugins.quarkus.BackendApplicationQuarkusTemplates</templates>
+                                        <basePackage>${basePackage}</basePackage>
+                                        <persistence>jpa</persistence>
+                                        <databaseType>${databaseType}</databaseType>
+                                        <style>imperative</style>
+                                        <includeEmitEventsImplementation>true</includeEmitEventsImplementation>
+                                        <forceOverwrite>${zenwave.forceOverwrite}</forceOverwrite>
+                                        <haltOnFailFormatting>false</haltOnFailFormatting>
+                                    </configOptions>
+                                </configuration>
+                            </execution>
+                            <execution>
+                                <id>openapi-controllers</id>
+                                <phase>initialize</phase>
+                                <goals><goal>generate</goal></goals>
+                                <configuration>
+                                    <generatorName>OpenAPIControllersPlugin</generatorName>
+                                    <inputSpec>${openapi.inputSpec}</inputSpec>
+                                    <targetFolder>${project.basedir}</targetFolder>
+                                    <addCompileSourceRoot>false</addCompileSourceRoot>
+                                    <configOptions>
+                                            <zdlFile>${zdlFile}</zdlFile>
+                                        <templates>new io.zenwave360.sdk.plugins.quarkus.OpenAPIControllersQuarkusTemplates</templates>
+                                        <basePackage>${basePackage}</basePackage>
+                                        <openApiApiPackage>${openApiApiPackage}</openApiApiPackage>
+                                        <openApiModelPackage>${openApiModelPackage}</openApiModelPackage>
+                                        <openApiModelNameSuffix>DTO</openApiModelNameSuffix>
+                                        <style>imperative</style>
+                                        <forceOverwrite>${zenwave.forceOverwrite}</forceOverwrite>
+                                        <haltOnFailFormatting>false</haltOnFailFormatting>
+                                    </configOptions>
+                                </configuration>
+                            </execution>
+                            <execution>
+                                <id>http-tests</id>
+                                <phase>initialize</phase>
+                                <goals><goal>generate</goal></goals>
+                                <configuration>
+                                    <generatorName>SpringWebTestClientPlugin</generatorName>
+                                    <inputSpec>${openapi.inputSpec}</inputSpec>
+                                    <targetFolder>${project.basedir}</targetFolder>
+                                    <addCompileSourceRoot>false</addCompileSourceRoot>
+                                    <configOptions>
+                                            <zdlFile>${zdlFile}</zdlFile>
+                                        <templates>new io.zenwave360.sdk.plugins.quarkus.QuarkusHttpTestTemplates</templates>
+                                        <basePackage>${basePackage}</basePackage>
+                                        <openApiApiPackage>${openApiApiPackage}</openApiApiPackage>
+                                        <openApiModelPackage>${openApiModelPackage}</openApiModelPackage>
+                                        <openApiModelNameSuffix>DTO</openApiModelNameSuffix>
+                                        <forceOverwrite>${zenwave.forceOverwrite}</forceOverwrite>
+                                        <haltOnFailFormatting>false</haltOnFailFormatting>
+                                    </configOptions>
+                                </configuration>
+                            </execution>
+                        </executions>
+                        <dependencies>
+                            <dependency>
+                                <groupId>io.zenwave360.sdk.plugins</groupId>
+                                <artifactId>zdl-to-openapi</artifactId>
+                                <version>${zenwave.version}</version>
+                            </dependency>
+                            <dependency>
+                                <groupId>io.zenwave360.sdk.plugins</groupId>
+                                <artifactId>zdl-to-asyncapi</artifactId>
+                                <version>${zenwave.version}</version>
+                            </dependency>
+                            <dependency>
+                                <groupId>io.zenwave360.sdk.plugins</groupId>
+                                <artifactId>backend-application-default</artifactId>
+                                <version>${zenwave.version}</version>
+                            </dependency>
+                            <dependency>
+                                <groupId>io.zenwave360.sdk.plugins</groupId>
+                                <artifactId>openapi-controllers</artifactId>
+                                <version>${zenwave.version}</version>
+                            </dependency>
+                            <dependency>
+                                <groupId>io.zenwave360.sdk.plugins</groupId>
+                                <artifactId>openapi-spring-webtestclient</artifactId>
+                                <version>${zenwave.version}</version>
+                            </dependency>
+                            <dependency>
+                                <groupId>io.zenwave360.sdk</groupId>
+                                <artifactId>quarkus-backend-application</artifactId>
+                                <version>${zenwave-quarkus.version}</version>
+                            </dependency>
+                        </dependencies>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
+        <profile>
+            <id>native</id>
+            <activation>
+                <property>
+                    <name>native</name>
+                </property>
+            </activation>
+            <properties>
+                <quarkus.package.jar.enabled>false</quarkus.package.jar.enabled>
+                <skipITs>false</skipITs>
+                <quarkus.native.enabled>true</quarkus.native.enabled>
+            </properties>
+        </profile>
+    </profiles>
 </project>

@@ -23,6 +23,7 @@
         <!-- not in the Quarkus BOM -->
         <mapstruct.version>1.6.3</mapstruct.version>
         <openapi-generator.version>7.18.0</openapi-generator.version>
+        <archunit.version>1.5.1</archunit.version>
 
         <!-- zenwave sdk + this repo's customizations (mvn install from repo root first) -->
         <zenwave.version>2.9.0-SNAPSHOT</zenwave.version>
@@ -31,8 +32,10 @@
         <zenwave.forceOverwrite>false</zenwave.forceOverwrite>
 
         <zdlFile>${project.basedir}/zenwave-model.zdl</zdlFile>
-        <!-- GeneratorMojo bug: a .zdl inputSpec is wrapped as file: URI twice. Pass zdlFile + a non-.zdl placeholder (unused by ZDL plugins). -->
+        <!-- zdlFile is passed in configOptions only (the mojo's own zdlFile/zdlFiles params map to deprecated zdlFiles).
+             inputSpec is required by the mojo: ZDL-only plugins get a non-.zdl placeholder they do not read. -->
         <zdl.inputSpec.workaround>zdl-only</zdl.inputSpec.workaround>
+        <databaseType>postgresql</databaseType>
         <openapi.inputSpec>${project.basedir}/src/main/resources/public/apis/openapi.yml</openapi.inputSpec>
         <asyncapi.inputSpec>${project.basedir}/src/main/resources/public/apis/asyncapi.yml</asyncapi.inputSpec>
 
@@ -111,6 +114,15 @@
             <groupId>io.quarkus</groupId>
             <artifactId>quarkus-messaging-kafka</artifactId>
         </dependency>
+        <!-- prod schema: Flyway migrations in src/main/resources/db/migration -->
+        <dependency>
+            <groupId>io.quarkus</groupId>
+            <artifactId>quarkus-flyway</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.flywaydb</groupId>
+            <artifactId>flyway-database-postgresql</artifactId>
+        </dependency>
         <dependency>
             <groupId>org.mapstruct</groupId>
             <artifactId>mapstruct</artifactId>
@@ -131,6 +143,12 @@
         <dependency>
             <groupId>org.testcontainers</groupId>
             <artifactId>testcontainers</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>com.tngtech.archunit</groupId>
+            <artifactId>archunit-junit5</artifactId>
+            <version>${archunit.version}</version>
             <scope>test</scope>
         </dependency>
     </dependencies>
@@ -300,11 +318,11 @@
                                 <goals><goal>generate</goal></goals>
                                 <configuration>
                                     <generatorName>ZDLToOpenAPIPlugin</generatorName>
-                                    <zdlFile>${zdlFile}</zdlFile>
                                     <inputSpec>${zdl.inputSpec.workaround}</inputSpec>
                                     <targetFolder>${project.basedir}</targetFolder>
                                     <addCompileSourceRoot>false</addCompileSourceRoot>
                                     <configOptions>
+                                        <zdlFile>${zdlFile}</zdlFile>
                                         <idType>integer</idType>
                                         <idTypeFormat>int64</idTypeFormat>
                                         <targetFile>src/main/resources/public/apis/openapi.yml</targetFile>
@@ -317,11 +335,11 @@
                                 <goals><goal>generate</goal></goals>
                                 <configuration>
                                     <generatorName>ZDLToAsyncAPIPlugin</generatorName>
-                                    <zdlFile>${zdlFile}</zdlFile>
                                     <inputSpec>${zdl.inputSpec.workaround}</inputSpec>
                                     <targetFolder>${project.basedir}</targetFolder>
                                     <addCompileSourceRoot>false</addCompileSourceRoot>
                                     <configOptions>
+                                        <zdlFile>${zdlFile}</zdlFile>
                                         <asyncapiVersion>v3</asyncapiVersion>
                                         <idType>integer</idType>
                                         <idTypeFormat>int64</idTypeFormat>
@@ -337,13 +355,15 @@
                                 <goals><goal>generate</goal></goals>
                                 <configuration>
                                     <generatorName>BackendApplicationDefaultPlugin</generatorName>
-                                    <zdlFile>${zdlFile}</zdlFile>
                                     <inputSpec>${zdl.inputSpec.workaround}</inputSpec>
                                     <targetFolder>${project.basedir}</targetFolder>
                                     <addCompileSourceRoot>false</addCompileSourceRoot>
                                     <configOptions>
+                                        <zdlFile>${zdlFile}</zdlFile>
                                         <templates>new io.zenwave360.sdk.plugins.quarkus.BackendApplicationQuarkusTemplates</templates>
                                         <basePackage>${basePackage}</basePackage>
+                                        <persistence>jpa</persistence>
+                                        <databaseType>${databaseType}</databaseType>
                                         <style>imperative</style>
                                         <includeEmitEventsImplementation>true</includeEmitEventsImplementation>
                                         <forceOverwrite>${zenwave.forceOverwrite}</forceOverwrite>
@@ -358,12 +378,10 @@
                                 <configuration>
                                     <generatorName>OpenAPIControllersPlugin</generatorName>
                                     <inputSpec>${openapi.inputSpec}</inputSpec>
-                                    <zdlFile>${zdlFile}</zdlFile>
                                     <targetFolder>${project.basedir}</targetFolder>
                                     <addCompileSourceRoot>false</addCompileSourceRoot>
                                     <configOptions>
-                                        <!-- GeneratorMojo passes zdlFiles; the plugin only loads the ZDL when zdlFile is set -->
-                                        <zdlFile>${zdlFile}</zdlFile>
+                                            <zdlFile>${zdlFile}</zdlFile>
                                         <templates>new io.zenwave360.sdk.plugins.quarkus.OpenAPIControllersQuarkusTemplates</templates>
                                         <basePackage>${basePackage}</basePackage>
                                         <openApiApiPackage>${openApiApiPackage}</openApiApiPackage>
@@ -382,11 +400,10 @@
                                 <configuration>
                                     <generatorName>SpringWebTestClientPlugin</generatorName>
                                     <inputSpec>${openapi.inputSpec}</inputSpec>
-                                    <zdlFile>${zdlFile}</zdlFile>
                                     <targetFolder>${project.basedir}</targetFolder>
                                     <addCompileSourceRoot>false</addCompileSourceRoot>
                                     <configOptions>
-                                        <zdlFile>${zdlFile}</zdlFile>
+                                            <zdlFile>${zdlFile}</zdlFile>
                                         <templates>new io.zenwave360.sdk.plugins.quarkus.QuarkusHttpTestTemplates</templates>
                                         <basePackage>${basePackage}</basePackage>
                                         <openApiApiPackage>${openApiApiPackage}</openApiApiPackage>
@@ -404,11 +421,10 @@
                                 <configuration>
                                     <generatorName>SpringWebTestClientPlugin</generatorName>
                                     <inputSpec>${openapi.inputSpec}</inputSpec>
-                                    <zdlFile>${zdlFile}</zdlFile>
                                     <targetFolder>${project.basedir}</targetFolder>
                                     <addCompileSourceRoot>false</addCompileSourceRoot>
                                     <configOptions>
-                                        <zdlFile>${zdlFile}</zdlFile>
+                                            <zdlFile>${zdlFile}</zdlFile>
                                         <templates>new io.zenwave360.sdk.plugins.quarkus.QuarkusHttpTestTemplates</templates>
                                         <basePackage>${basePackage}</basePackage>
                                         <openApiApiPackage>${openApiApiPackage}</openApiApiPackage>

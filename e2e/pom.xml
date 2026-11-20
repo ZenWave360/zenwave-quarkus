@@ -90,6 +90,15 @@
     </dependencies>
 
     <build>
+        <!-- projects/ are read from src/ by ScaffoldProject, never from the classpath -->
+        <testResources>
+            <testResource>
+                <directory>src/test/resources</directory>
+                <excludes>
+                    <exclude>projects/**</exclude>
+                </excludes>
+            </testResource>
+        </testResources>
         <plugins>
             <plugin>
                 <artifactId>maven-surefire-plugin</artifactId>

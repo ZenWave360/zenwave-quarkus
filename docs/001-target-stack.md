@@ -29,8 +29,7 @@ Future customizations copy this section and add their own target section.
 | `test-resources` | Shared models for every other module: ZDL, `openapi.yml`, and `asyncapi.yml`. |
 | `quarkus-backend-application` | Java customization: backend, OpenAPI controllers, and HTTP tests. |
 | `asyncapi-quarkus` | SmallRye templates for `AsyncAPIGenerator`. The Kotlin customization has no equivalent. |
-| `e2e` | Checked-in Quarkus project. Same shape as [`../zenwave-sdk/e2e`](../zenwave-sdk/e2e). |
-| `playground/` | Standalone Quarkus apps (not reactor modules) generated with `zenwave-sdk-maven-plugin` and finished by hand. `order-fulfillment-quarkus` is the candidate replacement for the e2e scaffold. |
+| `e2e` | Checked-in Quarkus projects on one archetype scaffold (`docs/e2e-scaffold.md`): `order-fulfillment-quarkus` (hand-finished, full test run on Dev Services) and `customer-address-relational` (fresh generation, compile + ArchitectureTest). Same idea as [`../zenwave-sdk/e2e`](../zenwave-sdk/e2e). |
 
 `test-resources` puts the models on the classpath:
 
@@ -87,6 +86,6 @@ Pin Quarkus, MapStruct, SmallRye, and Testcontainers versions in the e2e scaffol
 
 Unit tests live in the customization module that owns the templates. A unit test loads a model from `test-resources`, runs the official plugin with the Quarkus `templates` option, and asserts the generated files.
 
-`e2e` follows [`../zenwave-sdk/e2e`](../zenwave-sdk/e2e). A test copies a checked-in Quarkus scaffold from `e2e/src/test/resources/projects/` to `target/projects/`, runs the plugins in stages against the shared models, and compiles the copy with `MavenCompiler.compile`. E2E tests are skipped in a normal reactor build and run when the e2e property is turned on, the same way `e2e.tests.skip` works in the SDK.
+`e2e` follows [`../zenwave-sdk/e2e`](../zenwave-sdk/e2e). A test copies a checked-in Quarkus project from `e2e/src/test/resources/projects/` to `target/projects/`, replaces its `zenwave-model.zdl` with the shared model, and runs Maven on the copy with the project's `zenwave` profile (`zenwave-sdk-maven-plugin` + the installed templates), so run it with `mvn install -De2e.tests.skip=false`. Scaffold: `docs/e2e-scaffold.md`. E2E tests are skipped in a normal reactor build and run when the e2e property is turned on, the same way `e2e.tests.skip` works in the SDK.
 
 Templates write sources into that existing project. They do not emit `pom.xml`, the Quarkus main class, the Maven wrapper, Docker Compose, or a README. Those files belong to the e2e scaffold.
